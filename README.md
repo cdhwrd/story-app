@@ -34,7 +34,9 @@ A single-file web app (HTML/CSS/JS, no build step, no framework) that:
 
 All Stories, Goals, Steps, and Journey entries are stored in your browser's local storage, scoped to your device only. Nobody else can see it, not even via this repo, which only contains app *code*, never your personal data.
 
-**This is currently fragile.** Browser storage can be cleared by the browser itself, by clearing site data, or by uninstalling the app, and data has already been lost this way during development. Use the **⇩ Export data** button in the sidebar regularly until the persistence work below is done.
+Data is stored in **IndexedDB**, and the app asks the browser for *persistent storage* on launch so it is exempt from routine eviction. The sidebar shows when you last exported and warns if the browser declined to protect your storage.
+
+Even so, **export regularly** using the **⇩ Export data** button. Uninstalling the app or clearing site data will still remove everything, and there is no cloud copy until Phase 2.
 
 ---
 
@@ -50,20 +52,19 @@ The long-term model is:
 
 The aim is that someone can open the public Story app on a new device and either start a completely private Story from scratch or restore an existing Story without needing a Story account.
 
-### Phase 1, make local persistence dependable
+### Phase 1, make local persistence dependable — DONE
 
-Before adding cloud backup, make the local data layer robust enough to trust with long-term personal history.
+- ✅ Primary data moved from `localStorage` to **IndexedDB** (single-document; the whole state is one record)
+- ✅ `navigator.storage.persist()` requested on launch, so data is not routinely evictable
+- ✅ Explicit **schema versioning** (`schemaVersion`, currently 1) with an ordered migration runner
+- ✅ Automatic **pre-change backups** kept in a separate store, last 3 retained, written before any migration or restore
+- ✅ **Import / Restore** from an exported file, with shape validation and an explicit confirmation naming what will be replaced
+- ✅ One-time automatic migration of existing `localStorage` data on first launch
+- ✅ Export format stays plain, readable JSON
 
-Planned work:
+The local database is the source of truth. The app works fully offline with no account.
 
-- Move primary application data from `localStorage` to **IndexedDB**
-- Add explicit **schema versioning**
-- Add safe data migrations when the app changes
-- Ensure migrations and destructive operations create a safe local backup first
-- Add **Import / Restore** alongside the existing Export function
-- Keep the exported format portable and human-readable
-
-The local database remains the source of truth. The app should continue to work fully offline and without any external account.
+**Restore replaces rather than merges.** Merging would require resolving duplicate IDs; replace is predictable, and the automatic pre-restore backup is the safety net.
 
 ### Phase 2, user-owned Google Drive backup
 
@@ -169,11 +170,7 @@ MVP prototype. The core Story → Goal → Step → Journey loop is functional.
 
 ### Current priorities
 
-1. **Persistence foundation**
-   - IndexedDB
-   - schema versioning
-   - migrations
-   - import / restore
+1. ~~**Persistence foundation**~~ — done, see Phase 1 above
 
 2. **Backup**
    - portable `.story` export
