@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Story — a life in chapters</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e1b17">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --paper:#f2ecdf;
+  --paper2:#fbf8f0;
+  --ink:#1e1b17;
+  --muted:#756f65;
+  --rule:#d9d0c1;
+  --olive:#53614b;
+  --olive-soft:#e1e7dd;
+  --terracotta:#ae5c45;
+  --terracotta-soft:#eeded6;
+  --gold:#b58a3d;
+  --gold-soft:#efe2c9;
+  --blue:#6d7e83;
+  --shadow:0 16px 38px rgba(44,37,26,.10);
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;overflow-x:hidden}
+body{
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.35), transparent 32%),
+    radial-gradient(circle at 80% 60%, rgba(173,145,95,.08), transparent 34%),
+    var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--terracotta);outline-offset:2px}
+a{text-decoration:none;color:inherit}
+
+.app{min-height:100vh}
+.topbar{
+  height:70px;
+  border-bottom:1px solid var(--rule);
+  background:rgba(246,241,232,.92);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 28px;
+  position:sticky;
+  top:0;
+  z-index:20;
+  backdrop-filter:blur(12px);
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-family:var(--serif);
+  font-size:21px;
+  font-weight:700;
+  letter-spacing:-.03em;
+}
+.brand-mark{
+  width:31px;height:31px;border:1.5px solid var(--ink);
+  border-radius:50%;display:grid;place-items:center;
+  font-size:13px;font-family:var(--sans);font-weight:900;
+}
+.top-actions{display:flex;gap:8px}
+.btn{
+  border:1px solid var(--rule);
+  background:var(--paper2);
+  color:var(--ink);
+  border-radius:10px;
+  padding:9px 13px;
+  font-weight:760;
+}
+.btn:hover{background:#f5efe4}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.ink-outline{background:transparent;border-color:var(--ink)}
+.btn.text{background:transparent;border-color:transparent;color:var(--muted)}
+.layout{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 70px)}
+aside{
+  border-right:1px solid var(--rule);
+  padding:24px 16px;
+  background:rgba(246,241,232,.52);
+}
+.aside-kicker{
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.19em;
+  color:var(--muted);
+  margin:4px 10px 13px;
+}
+.story-nav{display:flex;flex-direction:column;gap:3px}
+.story-nav button{
+  width:100%;
+  border:0;
+  background:transparent;
+  text-align:left;
+  border-radius:9px;
+  padding:10px;
+  display:flex;align-items:center;gap:9px;
+  color:var(--ink);
+}
+.story-nav button:hover{background:rgba(255,255,255,.36)}
+.story-nav button.active{background:var(--ink);color:#fff}
+.nav-icon{width:25px;flex:0 0 25px}
+.nav-name{font-weight:720;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-main{font-size:10px;color:var(--gold);font-weight:900}
+.story-nav button.active .nav-main{color:#efcf8d}
+main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
+.eyebrow{
+  font-size:10px;text-transform:uppercase;letter-spacing:.2em;
+  font-weight:900;color:var(--muted);
+}
+.serif-title{font-family:var(--serif);letter-spacing:-.045em}
+.home-hero{
+  display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:28px;align-items:end;
+  margin-bottom:28px;
+}
+.home-hero h1{font-size:clamp(46px,7vw,78px);line-height:.94;margin:7px 0 0;max-width:760px}
+.hero-note{font-family:var(--serif);font-size:17px;color:var(--muted);margin:13px 0 0;max-width:670px;line-height:1.4}
+.north-star{
+  background:var(--ink);color:#fff;padding:22px 20px;border-radius:2px;position:relative;
+  box-shadow:var(--shadow);min-height:135px;display:flex;flex-direction:column;justify-content:space-between;
+}
+.north-star:after{
+  content:"";position:absolute;right:14px;top:14px;width:36px;height:36px;border:1px solid rgba(255,255,255,.35);
+  transform:rotate(45deg);
+}
+.north-star .eyebrow{color:#d9d1c2}
+.north-star-text{font-family:var(--serif);font-size:22px;line-height:1.18;padding-right:34px}
+.north-star-edit{align-self:flex-start;border:0;background:transparent;color:#d8cbb7;padding:0;font-size:12px;font-weight:800}
+.section-rule{display:flex;align-items:center;gap:12px;margin:34px 0 15px}
+.section-rule span{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:900;white-space:nowrap}
+.section-rule:after{content:"";height:1px;background:var(--rule);flex:1}
+.main-story{
+  display:grid;grid-template-columns:1.08fr .92fr;gap:0;
+  background:var(--paper2);border:1px solid var(--rule);box-shadow:var(--shadow);
+  min-height:275px;
+}
+.main-story-left{padding:26px 26px 24px;background:linear-gradient(135deg,#f7f1e5,#eee5d5);border-right:1px solid var(--rule)}
+.main-story-right{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
+.story-badge{
+  display:inline-flex;align-items:center;gap:7px;border:1px solid #cfc3ad;
+  padding:5px 8px;border-radius:2px;font-size:10px;text-transform:uppercase;letter-spacing:.13em;font-weight:900;
+  background:#f8f1e3;
+}
+.story-badge .star{color:var(--gold)}
+.main-story h2{font-family:var(--serif);font-size:52px;line-height:.98;margin:16px 0 8px;letter-spacing:-.05em}
+.story-subline{color:var(--muted);font-size:13px;max-width:500px}
+.goal-feature{margin-top:22px;border-top:1px solid rgba(120,107,88,.25);padding-top:14px}
+.goal-label{font-size:9px;text-transform:uppercase;letter-spacing:.16em;font-weight:900;color:var(--muted)}
+.goal-feature h3{font-family:var(--serif);font-size:25px;line-height:1.05;margin:7px 0 0;letter-spacing:-.035em}
+.goal-target{font-size:12px;color:var(--muted);margin-top:5px}
+.goal-progress{height:7px;background:#ded6c8;margin-top:12px;overflow:hidden}
+.goal-progress > span{display:block;height:100%;background:var(--terracotta);width:42%}
+.goal-stat{font-size:11px;color:var(--muted);margin-top:6px}
+.main-story-right .mini-label{font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:900;color:var(--muted)}
+.step-teaser{
+  border-top:1px solid var(--rule);
+  padding-top:13px;margin-top:10px;
+}
+.step-line{
+  display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #ece5d9;
+}
+.step-line:last-child{border-bottom:0}
+.step-title{font-weight:760;font-size:13px}
+.point-badge{color:var(--gold);font-weight:900;font-size:12px;white-space:nowrap}
+.open-story{
+  align-self:flex-start;border:0;background:transparent;padding:0;color:var(--ink);
+  font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:900;
+}
+.open-story:hover{text-decoration:underline;text-underline-offset:4px}
+
+.story-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.story-card{
+  background:rgba(255,253,248,.82);border-top:4px solid var(--olive);
+  padding:17px 17px 15px;min-height:190px;border-left:1px solid var(--rule);border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  position:relative;transition:.18s;display:flex;flex-direction:column;
+}
+.story-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.story-card .card-icon{font-size:25px}
+.story-card h3{font-family:var(--serif);font-size:29px;line-height:1;margin:13px 0 5px;letter-spacing:-.04em}
+.story-card .card-goal-label{font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);font-weight:900}
+.story-card .card-goal{font-family:var(--serif);font-size:18px;line-height:1.12;margin-top:4px}
+.card-footer{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-top:auto;padding-top:18px}
+.card-journey{font-size:11px;color:var(--muted)}
+.card-open{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+
+.story-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
+.back{display:none}
+.story-head-icon{width:58px;height:58px;display:grid;place-items:center;font-size:30px;background:#e4dccd;border:1px solid #cfc5b5}
+.story-head h1{font-family:var(--serif);font-size:58px;line-height:.95;letter-spacing:-.055em;margin:3px 0 5px}
+.story-head-meta{font-size:12px;color:var(--muted)}
+.story-head-actions{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+.panel{
+  background:rgba(255,253,248,.86);
+  border:1px solid var(--rule);
+  padding:22px;
+  box-shadow:0 5px 14px rgba(44,37,26,.025);
+}
+.goal-hero-panel{margin-bottom:15px}
+.goal-hero-panel h2{font-family:var(--serif);font-size:34px;letter-spacing:-.04em;margin:5px 0 4px}
+.goal-hero-panel .goal-target{font-size:13px}
+.goal-row{display:flex;justify-content:space-between;gap:16px;align-items:end}
+.goal-points{font-size:13px;color:var(--gold);font-weight:900}
+.story-cols{display:grid;grid-template-columns:1.08fr .92fr;gap:15px}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+.section-title h2{font-family:var(--serif);font-size:27px;letter-spacing:-.035em;margin:3px 0 0}
+.section-title .kicker{font-size:9px;text-transform:uppercase;letter-spacing:.17em;color:var(--muted);font-weight:900}
+.step-list{display:flex;flex-direction:column}
+.step{
+  display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;
+  border-top:1px solid #e7dfd3;padding:13px 0;
+}
+.step:first-child{border-top:0;padding-top:0}
+.step-trigger{
+  width:29px;height:29px;border-radius:50%;border:1px solid #bcae98;background:#f8f2e7;
+  display:grid;place-items:center;color:var(--ink);font-weight:900;
+}
+.step-trigger:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.step-copy{min-width:0}
+.step h4{margin:0;font-size:14px}
+.step-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.step-points{color:var(--gold);font-weight:900;font-size:12px}
+.step-empty{
+  border:1px dashed #cfc5b4;padding:20px 15px;text-align:center;background:#faf6ee;
+}
+.step-empty .empty-title{font-family:var(--serif);font-size:20px}
+.step-empty p{color:var(--muted);font-size:12px;margin:5px auto 12px;max-width:280px}
+.add-step-row{display:flex;gap:7px;margin-top:12px}
+.add-step-row input{
+  flex:1;border:1px solid var(--rule);background:#fff;padding:10px 11px;border-radius:8px;
+}
+.chapter-list,.goal-list{display:flex;flex-direction:column}
+.list-item{border-top:1px solid #e7dfd3;padding:12px 0}
+.list-item:first-child{border-top:0;padding-top:0}
+.list-title{font-family:var(--serif);font-size:19px;line-height:1.05}
+.list-meta{font-size:11px;color:var(--muted);margin-top:4px}
+.journey{margin-top:15px}
+.journey-track{position:relative;padding-left:24px}
+.journey-track:before{content:"";position:absolute;left:6px;top:4px;bottom:5px;width:1px;background:#cfc4b4}
+.journal-entry{position:relative;padding:0 0 19px}
+.journal-entry:before{content:"";position:absolute;left:-21px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--terracotta);box-shadow:0 0 0 3px var(--paper2)}
+.journal-date{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:900}
+.journal-note{font-family:var(--serif);font-size:20px;line-height:1.12;margin:4px 0}
+.journal-meta{font-size:11px;color:var(--muted)}
+.journal-points{color:var(--gold);font-weight:900;font-size:12px}
+.north-star-edit-btn{font-size:12px}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(25,21,17,.52);display:none;align-items:center;justify-content:center;padding:17px;z-index:60}
+.modal-backdrop.open{display:flex}
+.modal{width:min(620px,100%);background:var(--paper2);border:1px solid var(--rule);box-shadow:0 28px 90px rgba(0,0,0,.27);padding:23px}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.modal h2{font-family:var(--serif);font-size:30px;letter-spacing:-.04em;margin:0}
+.close{border:1px solid var(--rule);background:#f1eadf;width:33px;height:33px;border-radius:50%;font-size:18px}
+.field{margin:13px 0}
+.field label{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);font-weight:900;margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;border:1px solid var(--rule);background:#fff;padding:11px;border-radius:8px;color:var(--ink)}
+.field textarea{min-height:90px;resize:vertical}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,18px);opacity:0;pointer-events:none;background:var(--ink);color:#fff;padding:11px 15px;font-size:12px;font-weight:800;z-index:90;transition:.2s;border-radius:9px;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.step-stamp{
+  position:fixed;left:50%;top:94px;transform:translate(-50%,-8px) rotate(-2deg) scale(.98);opacity:0;pointer-events:none;
+  border:2px solid var(--terracotta);color:var(--terracotta);background:rgba(250,244,234,.94);
+  padding:11px 15px 9px;text-align:center;z-index:85;transition:.2s;box-shadow:0 10px 26px rgba(60,42,27,.13)
+}
+.step-stamp.show{opacity:1;transform:translate(-50%,0) rotate(-2deg) scale(1)}
+.step-stamp strong{display:block;font-family:var(--serif);font-size:20px;line-height:1}
+.step-stamp span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.13em;font-weight:900;margin-top:4px}
+
+@media(max-width:900px){
+  .topbar{height:auto;min-height:64px;padding:10px 13px}
+  .layout{grid-template-columns:1fr}
+  aside{display:none}
+  main{padding:23px 13px 55px}
+  .home-hero{grid-template-columns:1fr;gap:18px}
+  .home-hero h1{font-size:56px}
+  .main-story{grid-template-columns:1fr}
+  .main-story-left{border-right:0;border-bottom:1px solid var(--rule)}
+  .story-grid{grid-template-columns:1fr}
+  .story-cols{grid-template-columns:1fr}
+  .back{display:inline-flex;order:-1}
+  .story-head{align-items:center}
+  .story-head h1{font-size:48px}
+}
+@media(max-width:560px){
+  .brand{display:none}
+  .top-actions{width:100%}
+  .top-actions .btn{flex:1;padding:10px 8px}
+  .home-hero h1{font-size:47px}
+  .north-star-text{font-size:20px}
+  .main-story h2{font-size:45px}
+  .main-story-left,.main-story-right{padding:21px}
+  .panel{padding:18px}
+  .goal-row{align-items:flex-start;flex-direction:column;gap:5px}
+  .story-head{gap:11px}
+  .story-head-icon{width:51px;height:51px;font-size:26px}
+  .story-head h1{font-size:42px}
+  .story-head-actions{width:100%;margin-left:0}
+  .story-head-actions .btn{flex:1}
+  .now-actions{grid-template-columns:1fr}
+  .add-step-row{flex-direction:column}
+  .add-step-row .btn{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">S</div><div>Story</div></div>
+    <div class="top-actions">
+      <button class="btn" id="homeLogBtn">＋ Log</button>
+      <button class="btn primary" id="homeAddStoryBtn">＋ Story</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside>
+      <div class="aside-kicker">Stories</div>
+      <div class="story-nav" id="storyNav"></div>
+      <button class="btn" id="sideAddStory" style="width:100%;margin-top:12px">＋ Add story</button>
+    </aside>
+    <main id="main"></main>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="modalTitle"></h2><button class="close" id="modalClose">×</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="step-stamp" id="stepStamp"><strong>STEP TAKEN</strong><span id="stepStampDetail">+1 point</span></div>
+
+<script>
+const DEFAULT_STATE = {
+  northStar:"Build a life I’m excited to wake up to.",
+  mainStoryId:"q-career",
+  quests:[
+    {id:"q-career",name:"Career",icon:"💼",attention:"max",status:"active",createdAt:"2026-09-01"},
+    {id:"q-writing",name:"Writing",icon:"✍️",attention:"active",status:"active",createdAt:"2026-09-01"},
+    {id:"q-guitar",name:"Guitar",icon:"🎸",attention:"available",status:"active",createdAt:"2026-09-01"},
+    {id:"q-surfing",name:"Surfing",icon:"🏄",attention:"available",status:"active",createdAt:"2026-09-01"},
+    {id:"q-home",name:"Home",icon:"🏠",attention:"background",status:"active",createdAt:"2026-09-01"}
+  ],
+  subs:[
+    {id:"s-current",questId:"q-career",title:"Perform well in current role",status:"active",createdAt:"2026-09-01"},
+    {id:"s-next",questId:"q-career",title:"Find my next career move",status:"active",createdAt:"2026-09-01"},
+    {id:"s-practice",questId:"q-writing",title:"Build a writing practice",status:"active",createdAt:"2026-09-01"},
+    {id:"s-improv",questId:"q-guitar",title:"Improve improvisation",status:"active",createdAt:"2026-09-01"}
+  ],
+  goals:[
+    {id:"g-career",questId:"q-career",title:"Find my next career move",target:"Identify 5 roles worth pursuing",status:"open",createdAt:"2026-09-01",progress:42},
+    {id:"g-role",questId:"q-career",title:"Perform strongly in my current role",target:"Keep performance high while exploring what's next",status:"open",createdAt:"2026-09-01",progress:68},
+    {id:"g-writing",questId:"q-writing",title:"Publish something I’m proud of",target:"One finished piece",status:"open",createdAt:"2026-09-01",progress:36},
+    {id:"g-guitar",questId:"q-guitar",title:"Play confidently with other people",target:"Build a small repertoire",status:"open",createdAt:"2026-09-01",progress:21},
+    {id:"g-surf",questId:"q-surfing",title:"Surf regularly and improve",target:"Surf twice per month",status:"open",createdAt:"2026-09-01",progress:55},
+    {id:"g-home",questId:"q-home",title:"Get on top of the house",target:"Keep the basics under control",status:"open",createdAt:"2026-09-01",progress:48}
+  ],
+  tasks:[
+    {id:"t1",questId:"q-career",subQuestId:"s-next",goalId:"g-career",title:"Update CV",status:"open",createdAt:"2026-09-04",points:2},
+    {id:"t2",questId:"q-career",subQuestId:"s-next",goalId:"g-career",title:"Speak to one recruiter",status:"open",createdAt:"2026-09-04",points:3},
+    {id:"t3",questId:"q-career",subQuestId:"s-current",goalId:"g-role",title:"Prepare weekly update",status:"complete",completedAt:"2026-09-03",createdAt:"2026-09-02",points:1},
+    {id:"t4",questId:"q-writing",subQuestId:"s-practice",goalId:"g-writing",title:"Finish the first section",status:"open",createdAt:"2026-09-03",points:3},
+    {id:"t5",questId:"q-writing",subQuestId:"s-practice",goalId:"g-writing",title:"Write for 20 minutes",status:"open",createdAt:"2026-09-03",points:2},
+    {id:"t6",questId:"q-guitar",subQuestId:"s-improv",goalId:"g-guitar",title:"Practise the blues progression",status:"open",createdAt:"2026-09-03",points:2},
+    {id:"t7",questId:"q-surfing",subQuestId:null,goalId:"g-surf",title:"Check the weekend forecast",status:"open",createdAt:"2026-09-03",points:1},
+    {id:"t8",questId:"q-home",subQuestId:null,goalId:"g-home",title:"Clear the kitchen counter",status:"open",createdAt:"2026-09-03",points:1}
+  ],
+  activities:[
+    {id:"a1",questId:"q-career",taskId:"t3",note:"Prepared weekly update",points:1,date:"2026-09-03"},
+    {id:"a2",questId:"q-career",taskId:null,note:"Reviewed three companies",points:2,date:"2026-09-02"},
+    {id:"a3",questId:"q-writing",taskId:null,note:"Wrote for 35 minutes",points:2,date:"2026-09-04"},
+    {id:"a4",questId:"q-writing",taskId:null,note:"Added an idea to the draft",points:1,date:"2026-09-01"},
+    {id:"a5",questId:"q-guitar",taskId:null,note:"Played for 25 minutes",points:2,date:"2026-08-29"},
+    {id:"a6",questId:"q-surfing",taskId:null,note:"Went surfing",points:3,date:"2026-08-26"},
+    {id:"a7",questId:"q-home",taskId:"t8",note:"Cleared the kitchen counter",points:1,date:"2026-09-02"}
+  ]
+};
+
+let state = JSON.parse(localStorage.getItem("storyPrototypeV4") || "null") || JSON.parse(JSON.stringify(DEFAULT_STATE));
+let currentStory = null;
+
+const attRank={max:0,active:1,available:2,background:3};
+function save(){localStorage.setItem("storyPrototypeV4",JSON.stringify(state))}
+function q(id){return state.quests.find(x=>x.id===id)}
+function goals(id){return state.goals.filter(x=>x.questId===id&&x.status!=="complete")}
+function subs(id){return state.subs.filter(x=>x.questId===id&&x.status!=="dormant")}
+function tasks(id){return state.tasks.filter(x=>x.questId===id)}
+function openTasks(id){return tasks(id).filter(x=>x.status==="open")}
+function acts(id){return state.activities.filter(x=>x.questId===id).sort((a,b)=>b.date.localeCompare(a.date))}
+function points(id){return acts(id).reduce((n,a)=>n+Number(a.points||0),0)}
+function latest(id){return acts(id)[0]?.date||""}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function humanDate(d){
+  const today=new Date(); today.setHours(12,0,0,0);
+  const date=new Date(d+"T12:00:00");
+  const diff=Math.round((today-date)/86400000);
+  if(diff===0)return "Today";
+  if(diff===1)return "Yesterday";
+  if(diff<7)return diff+" days ago";
+  return date.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+}
+function renderNav(){
+  const nav=document.getElementById("storyNav");
+  const list=[...state.quests].filter(x=>x.status==="active").sort((a,b)=>attRank[a.attention]-attRank[b.attention]||(latest(b.id)||"").localeCompare(latest(a.id)||""));
+  nav.innerHTML=list.map(x=>`<button class="${currentStory===x.id?"active":""}" data-nav="${x.id}">
+    <span class="nav-icon">${x.icon}</span><span class="nav-name">${esc(x.name)}</span>${state.mainStoryId===x.id?`<span class="nav-main">★</span>`:""}
+  </button>`).join("");
+  nav.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>openStory(b.dataset.nav));
+}
+function featuredGoal(id){return goals(id)[0]||state.goals.find(x=>x.questId===id)||null}
+function renderHome(){
+  currentStory=null;renderNav();
+  const list=[...state.quests].filter(x=>x.status==="active").sort((a,b)=>attRank[a.attention]-attRank[b.attention]||(latest(b.id)||"").localeCompare(latest(a.id)||""));
+  const main=q(state.mainStoryId)||list[0];
+  const mainGoal=main?featuredGoal(main.id):null;
+  const mainOpen=main?openTasks(main.id).slice(0,2):[];
+  const others=list.filter(x=>x.id!==main?.id);
+  document.getElementById("main").innerHTML=`
+    <section class="home-hero">
+      <div>
+        <div class="eyebrow">Your story</div>
+        <h1 class="serif-title">What story are you writing?</h1>
+        <p class="hero-note">Choose where to go next. Keep the direction visible. Let the steps add up to a life that feels like yours.</p>
+      </div>
+      <div class="north-star">
+        <div class="eyebrow">North Star</div>
+        <div class="north-star-text">${esc(state.northStar)}</div>
+        <button class="north-star-edit north-star-edit-btn" id="editNorthStar">Edit North Star</button>
+      </div>
+    </section>
+
+    ${main?`
+    <div class="section-rule"><span>★ Main Story</span></div>
+    <section class="main-story">
+      <div class="main-story-left">
+        <div class="story-badge"><span class="star">★</span> Main Story</div>
+        <h2>${esc(main.name)}</h2>
+        <div class="story-subline">${mainGoal?esc(mainGoal.title):"A story waiting for its next chapter."}</div>
+        ${mainGoal?`<div class="goal-feature">
+          <div class="goal-label">Goal</div>
+          <h3>${esc(mainGoal.title)}</h3>
+          <div class="goal-target">${esc(mainGoal.target||"")}</div>
+          <div class="goal-progress"><span style="width:${Math.max(0,Math.min(100,Number(mainGoal.progress||0)))}%"></span></div>
+          <div class="goal-stat">${Number(mainGoal.progress||0)}% of the way there</div>
+        </div>`:""}
+      </div>
+      <div class="main-story-right">
+        <div>
+          <div class="mini-label">A couple of steps</div>
+          <div class="step-teaser">
+            ${mainOpen.length?mainOpen.map(t=>`<div class="step-line"><span class="step-title">${esc(t.title)}</span><span class="point-badge">+${Number(t.points||1)}</span></div>`).join(""):`<div class="step-line"><span class="step-title">No steps queued</span><span class="point-badge">＋</span></div>`}
+          </div>
+        </div>
+        <button class="open-story" data-open-main="${main.id}">Open story →</button>
+      </div>
+    </section>`:""}
+
+    <div class="section-rule"><span>Other Stories</span></div>
+    <section class="story-grid">
+      ${others.map(x=>{
+        const g=featuredGoal(x.id); const a=latest(x.id);
+        return `<button class="story-card" data-card="${x.id}">
+          <div><div class="card-icon">${x.icon}</div><h3>${esc(x.name)}</h3>
+            <div class="card-goal-label">Goal</div>
+            <div class="card-goal">${g?esc(g.title):"Choose a direction"}</div>
+          </div>
+          <div class="card-footer"><div class="card-journey">${a?`Journey · ${humanDate(a)}`:"No journey yet"}</div><div class="card-open">Open →</div></div>
+        </button>`
+      }).join("")}
+    </section>`;
+  document.getElementById("editNorthStar").onclick=openNorthStar;
+  document.querySelectorAll("[data-card]").forEach(el=>el.onclick=()=>openStory(el.dataset.card));
+  document.querySelectorAll("[data-open-main]").forEach(el=>el.onclick=()=>openStory(el.dataset.openMain));
+}
+function openStory(id){
+  currentStory=id;renderNav();
+  const story=q(id); if(!story)return renderHome();
+  const gs=goals(id), ss=subs(id), os=openTasks(id), history=acts(id);
+  const total=points(id);
+  const highlighted=gs[0]||null;
+  document.getElementById("main").innerHTML=`
+    <div class="story-head">
+      <button class="btn text back" id="backHome">←</button>
+      <div class="story-head-icon">${story.icon}</div>
+      <div><div class="eyebrow">${state.mainStoryId===id?"★ Main Story":"Story"}</div><h1>${esc(story.name)}</h1><div class="story-head-meta">${total} points · ${history.length} journey entr${history.length===1?"y":"ies"}</div></div>
+      <div class="story-head-actions"><button class="btn" id="logStoryBtn">＋ Log</button><button class="btn" id="editStoryBtn">Edit</button></div>
+    </div>
+
+    ${highlighted?`<section class="panel goal-hero-panel">
+      <div class="goal-row">
+        <div><div class="eyebrow">Goal</div><h2>${esc(highlighted.title)}</h2><div class="goal-target">${esc(highlighted.target||"")}</div></div>
+        <div class="goal-points">${Number(highlighted.progress||0)}%</div>
+      </div>
+      <div class="goal-progress"><span style="width:${Math.max(0,Math.min(100,Number(highlighted.progress||0)))}%"></span></div>
+    </section>`:""}
+
+    <div class="story-cols">
+      <section class="panel">
+        <div class="section-title">
+          <div><div class="kicker">The next part of the story</div><h2>👣 Take a Step</h2></div>
+          <div class="goal-points">${os.length} open</div>
+        </div>
+        <div class="step-list">
+          ${os.length?os.map(t=>`<div class="step">
+            <button class="step-trigger" data-complete="${t.id}" title="Complete step">→</button>
+            <div class="step-copy"><h4>${esc(t.title)}</h4><div class="step-meta">${stepContext(t)}</div></div>
+            <div class="step-points">+${Number(t.points||1)}</div>
+          </div>`).join(""):`
+            <div class="step-empty">
+              <div class="empty-title">The road is clear.</div>
+              <p>Your story isn't empty. Add a new step when you see one worth taking.</p>
+              <button class="btn" id="emptyAddStep">＋ Add a step</button>
+            </div>`}
+        </div>
+        <div class="add-step-row">
+          <input id="quickStepInput" placeholder="What is one small step you could take?">
+          <select id="quickStepPoints" style="max-width:95px">
+            <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="5">+5</option>
+          </select>
+          <button class="btn primary" id="quickStepAdd">Add</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <div><div class="kicker">Direction</div><h2>Chapters</h2></div>
+          <button class="btn" id="addSubBtn">＋ Chapter</button>
+        </div>
+        <div class="chapter-list">
+          ${ss.length?ss.map(s=>`<div class="list-item"><div class="list-title">${esc(s.title)}</div><div class="list-meta">Chapter · ${esc(s.status)}</div></div>`).join(""):`<div class="step-empty"><div class="empty-title">No chapters yet.</div><p>Use chapters for the threads inside this Story.</p></div>`}
+        </div>
+        <div class="section-title" style="margin-top:25px">
+          <div><div class="kicker">Direction</div><h2>Goals</h2></div>
+          <button class="btn" id="addGoalBtn">＋ Goal</button>
+        </div>
+        <div class="goal-list">
+          ${gs.length?gs.map(g=>`<div class="list-item"><div class="list-title">${esc(g.title)}</div><div class="list-meta">${esc(g.target||"")} · ${Number(g.progress||0)}%</div></div>`).join(""):`<div class="step-empty"><div class="empty-title">No goals yet.</div><p>A goal gives the Story somewhere meaningful to go.</p></div>`}
+        </div>
+      </section>
+    </div>
+
+    <section class="panel journey">
+      <div class="section-title"><div><div class="kicker">The story so far</div><h2>🕒 Journey</h2></div><div class="goal-points">${total} points</div></div>
+      <div class="journey-track">
+        ${history.length?history.map(a=>`<div class="journal-entry">
+          <div class="journal-date">${humanDate(a.date)}</div>
+          <div class="journal-note">${esc(a.note)}</div>
+          <div class="journal-meta">${a.taskId?"Step completed":"Activity logged"} <span class="journal-points">· +${Number(a.points||0)}</span></div>
+        </div>`).join(""):`<div class="step-empty"><div class="empty-title">Your Journey begins with a step.</div><p>Complete a step or log something you did.</p></div>`}
+      </div>
+    </section>`;
+
+  document.getElementById("backHome").onclick=renderHome;
+  document.getElementById("logStoryBtn").onclick=()=>openLog(id);
+  document.getElementById("editStoryBtn").onclick=()=>openStoryModal(id);
+  document.getElementById("addGoalBtn").onclick=()=>openGoal(id);
+  document.getElementById("addSubBtn").onclick=()=>openChapter(id);
+  document.getElementById("quickStepAdd").onclick=()=>addQuickStep(id);
+  document.getElementById("quickStepInput").addEventListener("keydown",e=>{if(e.key==="Enter")addQuickStep(id)});
+  const empty=document.getElementById("emptyAddStep"); if(empty)empty.onclick=()=>document.getElementById("quickStepInput").focus();
+  document.querySelectorAll("[data-complete]").forEach(b=>b.onclick=()=>completeStep(b.dataset.complete));
+}
+function stepContext(t){
+  const c=state.subs.find(s=>s.id===t.subQuestId)?.title;
+  const g=state.goals.find(s=>s.id===t.goalId)?.title;
+  return [c,g].filter(Boolean).map(esc).join(" · ")||"A step in this Story";
+}
+function showStamp(storyName,pts){
+  const stamp=document.getElementById("stepStamp");
+  document.getElementById("stepStampDetail").textContent=`${storyName} · +${pts} point${pts===1?"":"s"}`;
+  stamp.classList.add("show"); setTimeout(()=>stamp.classList.remove("show"),1700);
+}
+function completeStep(id){
+  const t=state.tasks.find(x=>x.id===id);if(!t||t.status==="complete")return;
+  t.status="complete";t.completedAt=new Date().toISOString().slice(0,10);
+  const pts=Number(t.points||1);
+  state.activities.push({id:"a-"+Date.now(),questId:t.questId,taskId:t.id,note:t.title,points:pts,date:t.completedAt});
+  save(); showStamp(q(t.questId)?.name||"Story",pts); openStory(t.questId);
+}
+function addQuickStep(id){
+  const input=document.getElementById("quickStepInput");
+  const title=input.value.trim();if(!title){toast("Add a step first");return}
+  const pts=Number(document.getElementById("quickStepPoints").value||1);
+  state.tasks.push({id:"t-"+Date.now(),questId:id,subQuestId:null,goalId:goals(id)[0]?.id||null,title,status:"open",createdAt:new Date().toISOString(),points:pts});
+  save();toast("Step added");openStory(id);
+}
+function showModal(title,body){
+  document.getElementById("modalTitle").textContent=title;
+  document.getElementById("modalBody").innerHTML=body;
+  document.getElementById("modal").classList.add("open");
+  const c=document.getElementById("cancelModal");if(c)c.onclick=closeModal;
+}
+function closeModal(){document.getElementById("modal").classList.remove("open")}
+document.getElementById("modalClose").onclick=closeModal;
+document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
+function openNorthStar(){
+  showModal("North Star",`
+    <div class="field"><label>One sentence that guides the whole story</label>
+      <textarea id="northStarInput">${esc(state.northStar)}</textarea>
+    </div>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveNorthStar">Save</button></div>`);
+  document.getElementById("saveNorthStar").onclick=()=>{
+    const v=document.getElementById("northStarInput").value.trim();if(!v){toast("Give your North Star a sentence");return}
+    state.northStar=v;save();closeModal();renderHome();toast("North Star updated");
+  };
+}
+function openGoal(id){
+  showModal("Add Goal",`
+    <div class="field"><label>Goal</label><input id="goalTitle" placeholder="What do you want this Story to become?"></div>
+    <div class="field"><label>Target</label><input id="goalTarget" placeholder="Optional — e.g. one finished piece"></div>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveGoal">Add goal</button></div>`);
+  document.getElementById("saveGoal").onclick=()=>{
+    const title=document.getElementById("goalTitle").value.trim();if(!title){toast("Add a goal title");return}
+    state.goals.push({id:"g-"+Date.now(),questId:id,title,target:document.getElementById("goalTarget").value.trim(),status:"open",createdAt:new Date().toISOString(),progress:0});
+    save();closeModal();openStory(id);toast("Goal added");
+  };
+}
+function openChapter(id){
+  showModal("Add Chapter",`
+    <div class="field"><label>Chapter</label><input id="chapterTitle" placeholder="A meaningful thread within this Story"></div>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveChapter">Add chapter</button></div>`);
+  document.getElementById("saveChapter").onclick=()=>{
+    const title=document.getElementById("chapterTitle").value.trim();if(!title){toast("Add a chapter title");return}
+    state.subs.push({id:"s-"+Date.now(),questId:id,title,status:"active",createdAt:new Date().toISOString()});
+    save();closeModal();openStory(id);toast("Chapter added");
+  };
+}
+function openLog(defaultId){
+  showModal("Log a Journey Entry",`
+    <div class="field"><label>Story</label><select id="logStory">${state.quests.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${x.icon} ${esc(x.name)}</option>`).join("")}</select></div>
+    <div class="field"><label>What happened?</label><textarea id="logNote" placeholder="Write a small field note…"></textarea></div>
+    <div class="field"><label>Date</label><input id="logDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="field"><label>Points</label><select id="logPoints"><option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="5">+5</option></select></div>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveLog">Add to Journey</button></div>`);
+  document.getElementById("saveLog").onclick=()=>{
+    const note=document.getElementById("logNote").value.trim();if(!note){toast("Add a field note first");return}
+    const sid=document.getElementById("logStory").value, pts=Number(document.getElementById("logPoints").value||1);
+    state.activities.push({id:"a-"+Date.now(),questId:sid,taskId:null,note,points:pts,date:document.getElementById("logDate").value});
+    save();closeModal();toast("Journey updated");
+    if(currentStory===sid)openStory(sid);else renderHome();
+  };
+}
+function openStoryModal(editId){
+  const story=q(editId);
+  showModal("Edit Story",`
+    <div class="field"><label>Name</label><input id="storyName" value="${esc(story.name)}"></div>
+    <div class="field"><label>Icon</label><input id="storyIcon" maxlength="2" value="${esc(story.icon)}"></div>
+    <div class="field"><label>Attention</label><select id="storyAttention">${["max","active","available","background"].map(v=>`<option value="${v}" ${story.attention===v?"selected":""}>${v.replace("_"," ")}</option>`).join("")}</select></div>
+    <div class="field"><label>Story type</label><select id="mainStoryChoice"><option value="no">Other story</option><option value="yes" ${state.mainStoryId===story.id?"selected":""}>Main Story</option></select></div>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveStory">Save</button></div>`);
+  document.getElementById("saveStory").onclick=()=>{
+    story.name=document.getElementById("storyName").value.trim()||story.name;
+    story.icon=document.getElementById("storyIcon").value||"✦";
+    story.attention=document.getElementById("storyAttention").value;
+    if(document.getElementById("mainStoryChoice").value==="yes")state.mainStoryId=story.id;
+    else if(state.mainStoryId===story.id){
+      const fallback=state.quests.find(x=>x.status==="active"&&x.id!==story.id);state.mainStoryId=fallback?.id||story.id;
+    }
+    save();closeModal();openStory(editId);toast("Story updated");
+  };
+}
+function openAddStory(){
+  showModal("Add Story",`
+    <div class="field"><label>Story name</label><input id="newStoryName" placeholder="e.g. Photography"></div>
+    <div class="field"><label>Icon</label><input id="newStoryIcon" maxlength="2" value="✦"></div>
+    <div class="field"><label>Attention</label><select id="newStoryAttention">${["max","active","available","background"].map(v=>`<option value="${v}">${v.replace("_"," ")}</option>`).join("")}</select></div>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveNewStory">Create story</button></div>`);
+  document.getElementById("saveNewStory").onclick=()=>{
+    const name=document.getElementById("newStoryName").value.trim();if(!name){toast("Name your Story");return}
+    const id="q-"+Date.now();
+    state.quests.push({id,name,icon:document.getElementById("newStoryIcon").value||"✦",attention:document.getElementById("newStoryAttention").value,status:"active",createdAt:new Date().toISOString()});
+    save();closeModal();openStory(id);toast("Story created");
+  };
+}
+document.getElementById("homeLogBtn").onclick=()=>openLog(currentStory);
+document.getElementById("homeAddStoryBtn").onclick=openAddStory;
+document.getElementById("sideAddStory").onclick=openAddStory;
+
+renderHome();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
