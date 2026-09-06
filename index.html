@@ -128,22 +128,10 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 }
 .serif-title{font-family:var(--serif);letter-spacing:-.045em}
 .home-hero{
-  display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:28px;align-items:end;
   margin-bottom:28px;
 }
 .home-hero h1{font-size:clamp(46px,7vw,78px);line-height:.94;margin:7px 0 0;max-width:760px}
 .hero-note{font-family:var(--serif);font-size:17px;color:var(--muted);margin:13px 0 0;max-width:670px;line-height:1.4}
-.north-star{
-  background:var(--ink);color:#fff;padding:22px 20px;border-radius:2px;position:relative;
-  box-shadow:var(--shadow);min-height:135px;display:flex;flex-direction:column;justify-content:space-between;
-}
-.north-star:after{
-  content:"";position:absolute;right:14px;top:14px;width:36px;height:36px;border:1px solid rgba(255,255,255,.35);
-  transform:rotate(45deg);
-}
-.north-star .eyebrow{color:#d9d1c2}
-.north-star-text{font-family:var(--serif);font-size:22px;line-height:1.18;padding-right:34px}
-.north-star-edit{align-self:flex-start;border:0;background:transparent;color:#d8cbb7;padding:0;font-size:12px;font-weight:800}
 .section-rule{display:flex;align-items:center;gap:12px;margin:34px 0 15px}
 .section-rule span{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:900;white-space:nowrap}
 .section-rule:after{content:"";height:1px;background:var(--rule);flex:1}
@@ -210,10 +198,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   padding:22px;
   box-shadow:0 5px 14px rgba(44,37,26,.025);
 }
-.goal-hero-panel{margin-bottom:15px}
-.goal-hero-panel h2{font-family:var(--serif);font-size:34px;letter-spacing:-.04em;margin:5px 0 4px}
-.goal-hero-panel .goal-target{font-size:13px}
-.goal-row{display:flex;justify-content:space-between;gap:16px;align-items:end}
 .story-cols{display:grid;grid-template-columns:1.08fr .92fr;gap:15px}
 .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
 .section-title h2{font-family:var(--serif);font-size:27px;letter-spacing:-.035em;margin:3px 0 0}
@@ -243,6 +227,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 }
 .chapter-list,.goal-list{display:flex;flex-direction:column}
 .list-item{border-top:1px solid #e7dfd3;padding:12px 0}
+.list-item-lead .list-title{font-size:22px;line-height:1.1}
 .list-item:first-child{border-top:0;padding-top:0}
 .list-title{font-family:var(--serif);font-size:19px;line-height:1.05}
 .list-meta{font-size:11px;color:var(--muted);margin-top:4px}
@@ -254,7 +239,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .journal-date{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:900}
 .journal-note{font-family:var(--serif);font-size:20px;line-height:1.12;margin:4px 0}
 .journal-meta{font-size:11px;color:var(--muted)}
-.north-star-edit-btn{font-size:12px}
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(25,21,17,.52);display:none;align-items:center;justify-content:center;padding:17px;z-index:60}
 .modal-backdrop.open{display:flex}
@@ -283,7 +267,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   .layout{grid-template-columns:1fr}
   aside{display:none}
   main{padding:23px 13px 55px}
-  .home-hero{grid-template-columns:1fr;gap:18px}
+  /* hero is single-column since the North Star was retired */
   .home-hero h1{font-size:56px}
   .main-story{grid-template-columns:1fr}
   .main-story-left{border-right:0;border-bottom:1px solid var(--rule)}
@@ -298,11 +282,9 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   .top-actions{width:100%}
   .top-actions .btn{flex:1;padding:10px 8px}
   .home-hero h1{font-size:47px}
-  .north-star-text{font-size:20px}
   .main-story h2{font-size:45px}
   .main-story-left,.main-story-right{padding:21px}
   .panel{padding:18px}
-  .goal-row{align-items:flex-start;flex-direction:column;gap:5px}
   .story-head{gap:11px}
   .story-head-icon{width:51px;height:51px;font-size:26px}
   .story-head h1{font-size:42px}
@@ -344,9 +326,6 @@ body{
 .section-rule:after{height:2px;background:var(--ink)}
 .home-hero{position:relative}
 .home-hero h1{text-transform:uppercase;line-height:.87}
-.north-star{background:var(--signal-red);border:2px solid var(--ink);box-shadow:7px 8px 0 rgba(30,27,23,.2);overflow:hidden}
-.north-star:after{border-color:rgba(255,255,255,.55)}
-.north-star .eyebrow,.north-star-edit{color:#fff5e7}
 .main-story-left{background:transparent;border-right:2px solid rgba(30,27,23,.35);position:relative;z-index:1}
 .main-story-right{position:relative;z-index:1}
 .main-story:before{font-size:96px;color:rgba(255,255,255,.22)}
@@ -366,7 +345,6 @@ body{
 .story-head{border-bottom:2px solid var(--ink);padding-bottom:13px}
 .story-head h1{text-transform:uppercase}
 .story-head-icon{border:2px solid var(--ink);box-shadow:3px 3px 0 rgba(30,27,23,.13)}
-.goal-hero-panel{background:var(--poster-yellow);border:2px solid var(--ink);border-top:8px solid var(--signal-red)}
 .panel{border:2px solid var(--ink);border-top-width:7px;box-shadow:6px 7px 0 rgba(30,27,23,.1)}
 .section-title h2{text-transform:uppercase}
 .step{border-color:#c9bda9}
@@ -394,8 +372,8 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
   .main-story h2{font-size:46px}
   .story-head h1{font-size:40px}
   /* Offset shadows are decorative; at narrow widths they add horizontal bulk. */
-  .north-star,.main-story{box-shadow:4px 5px 0 rgba(30,27,23,.18)}
-  .story-card,.panel,.goal-hero-panel{box-shadow:3px 4px 0 rgba(30,27,23,.12)}
+  .main-story{box-shadow:4px 5px 0 rgba(30,27,23,.18)}
+  .story-card,.panel{box-shadow:3px 4px 0 rgba(30,27,23,.12)}
   .data-footer{padding:13px 13px 20px}
   .data-footer-inner{gap:9px}
   .data-actions{width:100%}
@@ -454,7 +432,6 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
 const SCHEMA_VERSION = 2;
 const DEFAULT_STATE = {
   schemaVersion: SCHEMA_VERSION,
-  northStar:"",
   mainStoryId:null,
   quests:[],
   subs:[],
@@ -620,6 +597,13 @@ function toast(msg){
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
 }
+/* Local calendar date as YYYY-MM-DD. Not toISOString(), which is UTC:
+   after midnight in a positive-offset timezone that returns yesterday,
+   which stamped completed steps with the wrong day. */
+function todayLocal(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 function humanDate(d){
   const today=new Date(); today.setHours(12,0,0,0);
   const date=new Date(d+"T12:00:00");
@@ -650,11 +634,6 @@ function renderHome(){
           <h1 class="serif-title">Start with one part of your life.</h1>
           <p class="hero-note">Career, Writing, Health, whatever matters to you. You can add more whenever something new comes into focus.</p>
         </div>
-        <div class="north-star">
-          <div class="eyebrow">North Star</div>
-          <div class="north-star-text">${state.northStar?esc(state.northStar):"Optional, one sentence that guides the whole story."}</div>
-          <button class="north-star-edit north-star-edit-btn" id="editNorthStar">${state.northStar?"Edit North Star":"Set a North Star"}</button>
-        </div>
       </section>
       <div class="section-rule"><span>Begin</span></div>
       <section class="step-empty" style="padding:38px 20px">
@@ -662,7 +641,6 @@ function renderHome(){
         <p>Create your first Story to start finding your way. There's nothing else to set up first.</p>
         <button class="btn primary" id="firstStoryBtn">＋ Create your first Story</button>
       </section>`;
-    document.getElementById("editNorthStar").onclick=openNorthStar;
     document.getElementById("firstStoryBtn").onclick=openAddStory;
     renderStorageStatus();
     return;
@@ -679,11 +657,6 @@ function renderHome(){
         <h1 class="serif-title">What story are you writing?</h1>
         <p class="hero-note">Choose where to go next. Keep the direction visible. Let the steps add up to a life that feels like yours.</p>
       </div>
-      <div class="north-star">
-        <div class="eyebrow">North Star</div>
-        <div class="north-star-text">${esc(state.northStar)}</div>
-        <button class="north-star-edit north-star-edit-btn" id="editNorthStar">Edit North Star</button>
-      </div>
     </section>
 
     ${main?`
@@ -692,12 +665,11 @@ function renderHome(){
       <div class="main-story-left">
         <div class="story-badge"><span class="star">★</span> Main Story</div>
         <h2>${esc(main.name)}</h2>
-        <div class="story-subline">${mainGoal?esc(mainGoal.title):"A story waiting for its next chapter."}</div>
         ${mainGoal?`<div class="goal-feature">
           <div class="goal-label">Goal</div>
           <h3>${esc(mainGoal.title)}</h3>
-          <div class="goal-target">${esc(mainGoal.detail||"")}</div>
-        </div>`:""}
+          ${mainGoal.detail?`<div class="goal-target">${esc(mainGoal.detail)}</div>`:""}
+        </div>`:`<div class="story-subline">A story waiting for its next chapter.</div>`}
       </div>
       <div class="main-story-right">
         <div>
@@ -723,7 +695,6 @@ function renderHome(){
         </button>`
       }).join("")}
     </section>`;
-  document.getElementById("editNorthStar").onclick=openNorthStar;
   document.querySelectorAll("[data-card]").forEach(el=>el.onclick=()=>openStory(el.dataset.card));
   document.querySelectorAll("[data-open-main]").forEach(el=>el.onclick=()=>openStory(el.dataset.openMain));
 }
@@ -731,7 +702,6 @@ function openStory(id){
   currentStory=id;renderNav();
   const story=q(id); if(!story)return renderHome();
   const gs=goals(id), ss=subs(id), os=openTasks(id), history=acts(id);
-  const highlighted=gs[0]||null;
   document.getElementById("main").innerHTML=`
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
@@ -754,21 +724,19 @@ function openStory(id){
         </div>
       </section>
 
-      ${highlighted?`<section class="panel goal-hero-panel">
-        <div class="goal-row">
-          <div><div class="eyebrow">Goal</div><h2>${esc(highlighted.title)}</h2><div class="goal-target">${esc(highlighted.detail||"")}</div></div>
-        </div>
-      </section>`:""}
-
       <section class="panel">
         <div class="section-title">
           <div><div class="kicker">Direction</div><h2>Goals</h2></div>
           <button class="btn" id="addGoalBtn">＋ Goal</button>
         </div>
         <div class="goal-list">
-          ${gs.length?gs.map(g=>{
+          ${gs.length?gs.map((g,i)=>{
             const chapterName=state.subs.find(s=>s.id===g.subQuestId)?.title;
-            return `<div class="list-item"><div class="list-title">${esc(g.title)}</div><div class="list-meta">${[chapterName,g.detail].filter(Boolean).map(esc).join(" · ")}</div></div>`;
+            const meta=[chapterName,g.detail].filter(Boolean).map(esc).join(" · ");
+            return `<div class="list-item${i===0?" list-item-lead":""}">
+              <div class="list-title">${esc(g.title)}</div>
+              ${meta?`<div class="list-meta">${meta}</div>`:""}
+            </div>`;
           }).join(""):`<div class="step-empty"><div class="empty-title">No goals yet.</div><p>A goal gives the Story somewhere meaningful to go.</p></div>`}
         </div>
       </section>
@@ -828,7 +796,7 @@ function showStamp(){
 }
 function completeStep(id){
   const t=state.tasks.find(x=>x.id===id);if(!t||t.status==="complete")return;
-  t.status="complete";t.completedAt=new Date().toISOString().slice(0,10);
+  t.status="complete";t.completedAt=todayLocal();
   state.activities.push({id:"a-"+Date.now(),questId:t.questId,taskId:t.id,note:t.title,date:t.completedAt});
   save(); showStamp(); openStory(t.questId);
 }
@@ -847,17 +815,6 @@ function showModal(title,body){
 function closeModal(){document.getElementById("modal").classList.remove("open")}
 document.getElementById("modalClose").onclick=closeModal;
 document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
-function openNorthStar(){
-  showModal("North Star",`
-    <div class="field"><label>One sentence that guides the whole story</label>
-      <textarea id="northStarInput">${esc(state.northStar)}</textarea>
-    </div>
-    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveNorthStar">Save</button></div>`);
-  document.getElementById("saveNorthStar").onclick=()=>{
-    const v=document.getElementById("northStarInput").value.trim();if(!v){toast("Give your North Star a sentence");return}
-    state.northStar=v;save();closeModal();renderHome();toast("North Star updated");
-  };
-}
 function openGoal(id){
   const chapters=subs(id);
   showModal("Add Goal",`
@@ -886,7 +843,7 @@ function openLog(defaultId){
   showModal("Log a Journey Entry",`
     <div class="field"><label>Story</label><select id="logStory">${state.quests.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${esc(x.icon)} ${esc(x.name)}</option>`).join("")}</select></div>
     <div class="field"><label>What happened?</label><textarea id="logNote" placeholder="Write a small field note…"></textarea></div>
-    <div class="field"><label>Date</label><input id="logDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="field"><label>Date</label><input id="logDate" type="date" value="${todayLocal()}"></div>
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveLog">Add to Journey</button></div>`);
   document.getElementById("saveLog").onclick=()=>{
     const note=document.getElementById("logNote").value.trim();if(!note){toast("Add a field note first");return}
@@ -976,7 +933,7 @@ async function exportData(){
   state.exportedAt=new Date().toISOString();
   save();
   const payload=JSON.stringify(state,null,2);
-  const filename=`story-export-${new Date().toISOString().slice(0,10)}.json`;
+  const filename=`story-export-${todayLocal()}.json`;
 
   // 1. Share sheet. Most reliable route on Android: lets the file go
   //    straight to Drive, Files, email etc.
@@ -1178,7 +1135,7 @@ async function backupToDrive(force){
     const files=await driveListInFolder(folderId);
     const current=files.find(f=>f.name===DRIVE_CURRENT);
     await driveUpload(folderId,DRIVE_CURRENT,payload,current?.id);
-    const datedName=`story-${new Date().toISOString().slice(0,10)}.json`;
+    const datedName=`story-${todayLocal()}.json`;
     const sameDay=files.find(f=>f.name===datedName);
     await driveUpload(folderId,datedName,payload,sameDay?.id);
     for(const old of datedToDelete(files.concat(sameDay?[]:[{name:datedName}]),DRIVE_KEEP_DATED)){
