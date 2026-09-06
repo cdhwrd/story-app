@@ -313,6 +313,19 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   .add-step-row{flex-direction:column}
   .add-step-row .btn{width:100%}
 }
+
+/* Story v6 editorial explorer layer */
+:root{--paper:#ede5d6;--paper2:#fbf7ed;--ink:#201c17;--muted:#72695d;--rule:#cfc3b1;--olive:#52614a;--terracotta:#ad5941;--gold:#ae873f;--shadow:0 16px 42px rgba(47,35,22,.12)}
+body{background:radial-gradient(circle at 18% 15%,rgba(255,255,255,.55),transparent 30%),radial-gradient(circle at 82% 70%,rgba(173,135,68,.08),transparent 34%),var(--paper)}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;background-image:radial-gradient(rgba(55,41,26,.25) .6px,transparent .7px);background-size:19px 21px;z-index:-1}
+.brand-mark{border-radius:4px;transform:rotate(-3deg)}.btn{border-radius:5px;box-shadow:2px 2px 0 rgba(50,38,24,.05)}.btn.primary{box-shadow:3px 3px 0 rgba(30,26,21,.15)}
+.main-story{border:0;box-shadow:var(--shadow);position:relative;overflow:hidden}.main-story:before{content:"01";position:absolute;right:22px;top:8px;font:700 76px/1 Georgia,"Times New Roman",serif;color:rgba(59,46,31,.07);pointer-events:none}.main-story-left{background:linear-gradient(135deg,#e7decd,#f5efe5)}
+.story-card{border:0;border-top:5px solid var(--olive);box-shadow:5px 7px 0 rgba(72,56,37,.05),0 12px 25px rgba(42,31,20,.06);transform:rotate(-.15deg)}.story-card:nth-child(even){transform:rotate(.15deg)}.story-card:hover{transform:translateY(-4px) rotate(0)}.story-card:after{content:"";position:absolute;right:14px;bottom:13px;width:18px;height:18px;border-right:1px solid #c9bba7;border-bottom:1px solid #c9bba7}
+.goal-hero-panel{background:#e8dfcf;border:0;border-top:6px solid var(--terracotta);box-shadow:6px 7px 0 rgba(72,50,35,.07),0 14px 29px rgba(45,34,23,.06)}.panel{border:0;border-top:4px solid var(--rule);box-shadow:4px 6px 0 rgba(73,57,38,.04),0 10px 23px rgba(43,32,21,.05)}
+.step-trigger{border-radius:3px;background:#faf2e5;box-shadow:2px 2px 0 rgba(70,52,34,.07)}.step-trigger:hover{background:var(--terracotta);border-color:var(--terracotta);color:#fff}.journey{background:#f8f2e7;position:relative;overflow:hidden}.journey:after{content:"FIELD NOTES";position:absolute;right:18px;top:14px;font-size:9px;letter-spacing:.18em;color:#b2a594;font-weight:900}.journal-entry:before{background:var(--terracotta);border-radius:1px;transform:rotate(45deg)}
+.point-badge,.step-points,.journal-points{display:none}.goal-points{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+@media(max-width:900px){main{padding-left:13px;padding-right:13px;min-width:0}.story-cols{grid-template-columns:minmax(0,1fr)}.section-title{flex-wrap:wrap;min-width:0}.section-title>*{min-width:0;max-width:100%}.section-title .btn{max-width:100%;white-space:nowrap}.story-head{min-width:0}.story-head>*{min-width:0}.story-head-actions{min-width:0}.add-step-row{min-width:0;max-width:100%;flex-wrap:wrap}.add-step-row input{min-width:0;flex:1 1 180px}.story-card{transform:none}.story-card:nth-child(even){transform:none}}
+
 </style>
 </head>
 <body>
@@ -344,7 +357,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="step-stamp" id="stepStamp"><strong>STEP TAKEN</strong><span id="stepStampDetail">+1 point</span></div>
+<div class="step-stamp" id="stepStamp"><strong>STEP TAKEN</strong><span id="stepStampDetail">the journey grows</span></div>
 
 <script>
 const DEFAULT_STATE = {
@@ -460,7 +473,7 @@ function renderHome(){
       </div>
       <div class="main-story-right">
         <div>
-          <div class="mini-label">A couple of steps</div>
+          <div class="mini-label">Next steps</div>
           <div class="step-teaser">
             ${mainOpen.length?mainOpen.map(t=>`<div class="step-line"><span class="step-title">${esc(t.title)}</span><span class="point-badge">+${Number(t.points||1)}</span></div>`).join(""):`<div class="step-line"><span class="step-title">No steps queued</span><span class="point-badge">＋</span></div>`}
           </div>
@@ -469,7 +482,7 @@ function renderHome(){
       </div>
     </section>`:""}
 
-    <div class="section-rule"><span>Other Stories</span></div>
+    <div class="section-rule"><span>Stories</span></div>
     <section class="story-grid">
       ${others.map(x=>{
         const g=featuredGoal(x.id); const a=latest(x.id);
@@ -496,7 +509,7 @@ function openStory(id){
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
       <div class="story-head-icon">${story.icon}</div>
-      <div><div class="eyebrow">${state.mainStoryId===id?"★ Main Story":"Story"}</div><h1>${esc(story.name)}</h1><div class="story-head-meta">${total} points · ${history.length} journey entr${history.length===1?"y":"ies"}</div></div>
+      <div><div class="eyebrow">${state.mainStoryId===id?"★ Main Story":"Story"}</div><h1>${esc(story.name)}</h1><div class="story-head-meta">${history.length} steps taken · ${history.length} journey entr${history.length===1?"y":"ies"}</div></div>
       <div class="story-head-actions"><button class="btn" id="logStoryBtn">＋ Log</button><button class="btn" id="editStoryBtn">Edit</button></div>
     </div>
 
@@ -511,8 +524,8 @@ function openStory(id){
     <div class="story-cols">
       <section class="panel">
         <div class="section-title">
-          <div><div class="kicker">The next part of the story</div><h2>👣 Take a Step</h2></div>
-          <div class="goal-points">${os.length} open</div>
+          <div><div class="kicker">The next chapter starts here</div><h2>👣 Take a Step</h2></div>
+          <div class="goal-points">${os.length} available</div>
         </div>
         <div class="step-list">
           ${os.length?os.map(t=>`<div class="step">
@@ -528,9 +541,7 @@ function openStory(id){
         </div>
         <div class="add-step-row">
           <input id="quickStepInput" placeholder="What is one small step you could take?">
-          <select id="quickStepPoints" style="max-width:95px">
-            <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="5">+5</option>
-          </select>
+          <input type="hidden" id="quickStepPoints" value="1">
           <button class="btn primary" id="quickStepAdd">Add</button>
         </div>
       </section>
@@ -554,7 +565,7 @@ function openStory(id){
     </div>
 
     <section class="panel journey">
-      <div class="section-title"><div><div class="kicker">The story so far</div><h2>🕒 Journey</h2></div><div class="goal-points">${total} points</div></div>
+      <div class="section-title"><div><div class="kicker">The story so far</div><h2>🕒 Journey</h2></div><div class="goal-points">${history.length} steps taken</div></div>
       <div class="journey-track">
         ${history.length?history.map(a=>`<div class="journal-entry">
           <div class="journal-date">${humanDate(a.date)}</div>
@@ -581,7 +592,7 @@ function stepContext(t){
 }
 function showStamp(storyName,pts){
   const stamp=document.getElementById("stepStamp");
-  document.getElementById("stepStampDetail").textContent=`${storyName} · +${pts} point${pts===1?"":"s"}`;
+  document.getElementById("stepStampDetail").textContent=`${storyName} · the journey grows`;
   stamp.classList.add("show"); setTimeout(()=>stamp.classList.remove("show"),1700);
 }
 function completeStep(id){
@@ -645,7 +656,7 @@ function openLog(defaultId){
     <div class="field"><label>Story</label><select id="logStory">${state.quests.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${x.icon} ${esc(x.name)}</option>`).join("")}</select></div>
     <div class="field"><label>What happened?</label><textarea id="logNote" placeholder="Write a small field note…"></textarea></div>
     <div class="field"><label>Date</label><input id="logDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-    <div class="field"><label>Points</label><select id="logPoints"><option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="5">+5</option></select></div>
+    <input type="hidden" id="logPoints" value="1">
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveLog">Add to Journey</button></div>`);
   document.getElementById("saveLog").onclick=()=>{
     const note=document.getElementById("logNote").value.trim();if(!note){toast("Add a field note first");return}
