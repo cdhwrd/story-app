@@ -431,6 +431,7 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
       <div class="data-actions">
         <button class="btn text" id="sideExportBtn">⇩ Export data</button>
         <button class="btn text" id="sideImportBtn">⇧ Restore from file</button>
+        <button class="btn text" id="sidePasteBtn">⇧ Paste backup</button>
         <input type="file" id="importFile" accept="application/json,.json" style="display:none">
       </div>
       <div id="storageStatus" class="storage-status"></div>
@@ -937,15 +938,32 @@ async function importData(file){
   let parsed;
   try{parsed=JSON.parse(await file.text())}
   catch(e){toast("Couldn't read that file");return}
+  confirmRestore(parsed);
+}
+function openPasteRestore(){
+  showModal("Paste backup",`
+    <p style="margin:0 0 10px;font-size:14px;color:var(--muted)">Paste the text from an export below. Useful when moving between browsers, where a downloaded file isn't easy to hand over.</p>
+    <textarea id="pasteText" placeholder="Paste your exported Story data here" style="width:100%;height:140px;font-family:monospace;font-size:11px"></textarea>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="loadPaste">Continue</button></div>`);
+  document.getElementById("loadPaste").onclick=()=>{
+    const raw=document.getElementById("pasteText").value.trim();
+    if(!raw){toast("Paste your data first");return}
+    let parsed;
+    try{parsed=JSON.parse(raw)}
+    catch(e){toast("That doesn't look like Story data");return}
+    confirmRestore(parsed);
+  };
+}
+function confirmRestore(parsed){
   const problem=validateImport(parsed);
   if(problem){toast(problem);return}
   const counts=`${parsed.quests.length} ${parsed.quests.length===1?"Story":"Stories"}, ${parsed.activities.length} Journey ${parsed.activities.length===1?"entry":"entries"}`;
   const when=parsed.exportedAt?new Date(parsed.exportedAt).toLocaleDateString():"an unknown date";
-  showModal("Restore from file",`
-    <p style="margin:0 0 6px;font-size:14px">This will <strong>replace</strong> everything currently in Story with the contents of this file.</p>
+  showModal("Restore",`
+    <p style="margin:0 0 6px;font-size:14px">This will <strong>replace</strong> everything currently in Story with this data.</p>
     <p style="margin:0 0 14px;font-size:14px;color:var(--muted)">Restoring ${counts}, exported ${esc(when)}. Your current data is backed up first, in case you need it.</p>
-    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="confirmRestore">Replace my data</button></div>`);
-  document.getElementById("confirmRestore").onclick=async()=>{
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="confirmRestoreBtn">Replace my data</button></div>`);
+  document.getElementById("confirmRestoreBtn").onclick=async()=>{
     await writeBackup(JSON.parse(JSON.stringify(state)),"pre-restore");
     state=await migrate(parsed);
     await idbPut(STORE,state,STATE_KEY);
@@ -954,28 +972,63 @@ async function importData(file){
 }
 async function exportData(){
   state.exportedAt=new Date().toISOString();
+  save();
   const payload=JSON.stringify(state,null,2);
   const filename=`story-export-${new Date().toISOString().slice(0,10)}.json`;
+
+  // 1. Share sheet. Most reliable route on Android: lets the file go
+  //    straight to Drive, Files, email etc.
   try{
     const file=new File([payload],filename,{type:"application/json"});
     if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:"Story backup",text:"Your Story app data export"});
-      save(); renderStorageStatus();
+      await navigator.share({files:[file],title:"Story backup"});
+      renderStorageStatus();
       return;
     }
-  }catch(e){ if(e && e.name==="AbortError")return; /* otherwise fall through to download */ }
-  const url=URL.createObjectURL(new Blob([payload],{type:"application/json"}));
-  const a=document.createElement("a");
-  a.href=url;a.download=filename;document.body.appendChild(a);a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
-  toast("Exported, check your Downloads");
+  }catch(e){
+    if(e && e.name==="AbortError"){renderStorageStatus();return}
+    // any other share failure falls through to the routes below
+  }
+
+  // 2. Anchor download. Can be silently blocked by some mobile browsers,
+  //    and there is no way to detect that, so it is never the last resort.
+  try{
+    const url=URL.createObjectURL(new Blob([payload],{type:"application/json"}));
+    const a=document.createElement("a");
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},4000);
+  }catch(e){console.error("download failed",e)}
+
+  // 3. Always offer the raw text too. This is the one route that cannot
+  //    fail: a blocked download otherwise looks identical to a working one.
+  showExportFallback(payload,filename);
   renderStorageStatus();
+}
+function showExportFallback(payload,filename){
+  showModal("Your data",`
+    <p style="margin:0 0 6px;font-size:14px">A download of <strong>${esc(filename)}</strong> was started. Check your Downloads.</p>
+    <p style="margin:0 0 10px;font-size:14px;color:var(--muted)">If nothing downloaded, copy the text below and save it somewhere safe. This is your complete Story, and it can be pasted back in using Restore.</p>
+    <textarea id="exportText" readonly style="width:100%;height:140px;font-family:monospace;font-size:11px">${esc(payload)}</textarea>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Close</button><button class="btn primary" id="copyExport">Copy to clipboard</button></div>`);
+  document.getElementById("copyExport").onclick=async()=>{
+    const ta=document.getElementById("exportText");
+    try{
+      await navigator.clipboard.writeText(payload);
+      toast("Copied, now paste it somewhere safe");
+    }catch(e){
+      // Clipboard API needs a secure context and permission; selecting the
+      // text at least lets the user copy it by hand.
+      ta.focus();ta.select();
+      toast("Select all and copy manually");
+    }
+  };
 }
 document.getElementById("homeLogBtn").onclick=()=>openLog(currentStory);
 document.getElementById("homeAddStoryBtn").onclick=openAddStory;
 document.getElementById("sideAddStory").onclick=openAddStory;
 document.getElementById("sideExportBtn").onclick=exportData;
 document.getElementById("sideImportBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("sidePasteBtn").onclick=openPasteRestore;
 document.getElementById("importFile").addEventListener("change",e=>{
   const f=e.target.files[0]; if(f)importData(f); e.target.value="";
 });
