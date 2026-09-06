@@ -1,10 +1,12 @@
 # Story
 
-A personal life navigator — one Story at a time, one Step at a time.
+A personal life navigator, one Story at a time, one Step at a time.
 
-Story helps you keep track of the different parts of your life (career, writing, health, whatever matters to you), see what's currently in motion, and take one small step forward — without turning your life into a productivity dashboard you have to maintain.
+Story helps you keep track of the different parts of your life (career, writing, health, whatever matters to you), see what's currently in motion, and take one small step forward, without turning your life into a productivity dashboard you have to maintain.
 
 This is a personal, single-user prototype. It is not a multi-user product.
+
+> **Story is local-first. Cloud backup is optional. The user's data is portable and visible.**
 
 ---
 
@@ -13,9 +15,9 @@ This is a personal, single-user prototype. It is not a multi-user product.
 A single-file web app (HTML/CSS/JS, no build step, no framework) that:
 
 - Organises your life into **Stories** (enduring areas), each with optional **Chapters** (threads), **Goals** (outcomes), and **Steps** (small actions)
-- Keeps a chronological **Journey** — a record of what you've actually done, not just what's planned
+- Keeps a chronological **Journey**, a record of what you've actually done, not just what's planned
 - Runs entirely in your browser, installable to your Android home screen as a standalone app (PWA)
-- Stores all data locally on your device — nothing is sent to a server
+- Stores all data locally on your device, nothing is sent to a server
 
 ## Using it
 
@@ -26,38 +28,171 @@ A single-file web app (HTML/CSS/JS, no build step, no framework) that:
 2. Tap the **⋮** menu → **Install app** (or **Add to Home screen**)
 3. It opens full-screen with its own icon, like any other installed app
 
-**First launch** starts on a genuinely blank slate — set an optional North Star, then create your first Story. No seed data, no required setup beyond that.
+**First launch** starts on a blank slate. Set an optional North Star, then create your first Story. No seed data, no required setup beyond that.
 
 ## Where your data lives
 
-All Stories, Goals, Steps, and Journey entries are stored in your browser's local storage, scoped to your device only. Nobody else can see it — not even via this repo, which only contains app *code*, never your personal data.
+All Stories, Goals, Steps, and Journey entries are stored in your browser's local storage, scoped to your device only. Nobody else can see it, not even via this repo, which only contains app *code*, never your personal data.
 
-This also means it's not backed up anywhere automatically. **Use the "⇩ Export data" button in the sidebar regularly** — it shares a JSON snapshot of everything via Android's share sheet (Drive, email, wherever you like). If you clear browser data, uninstall the app, or switch devices without exporting first, your data is gone for good.
+**This is currently fragile.** Browser storage can be cleared by the browser itself, by clearing site data, or by uninstalling the app, and data has already been lost this way during development. Use the **⇩ Export data** button in the sidebar regularly until the persistence work below is done.
+
+---
+
+## Persistence, Backup & Restore Roadmap
+
+Story is designed as a **local-first, user-owned app**.
+
+The app should work immediately without an account or cloud connection. A person's Story lives on their device, and any optional backup should go somewhere they can see, control, copy and restore themselves.
+
+The long-term model is:
+
+> **Local Story → portable backup → optional Google Drive backup**
+
+The aim is that someone can open the public Story app on a new device and either start a completely private Story from scratch or restore an existing Story without needing a Story account.
+
+### Phase 1, make local persistence dependable
+
+Before adding cloud backup, make the local data layer robust enough to trust with long-term personal history.
+
+Planned work:
+
+- Move primary application data from `localStorage` to **IndexedDB**
+- Add explicit **schema versioning**
+- Add safe data migrations when the app changes
+- Ensure migrations and destructive operations create a safe local backup first
+- Add **Import / Restore** alongside the existing Export function
+- Keep the exported format portable and human-readable
+
+The local database remains the source of truth. The app should continue to work fully offline and without any external account.
+
+### Phase 2, user-owned Google Drive backup
+
+Google Drive should be an **optional backup layer**, not the application's database.
+
+The intended experience is:
+
+1. User chooses **Connect Google Drive**
+2. Story asks for permission to manage the files it creates
+3. Story creates a visible `Story` folder in the user's Google Drive
+4. The app maintains a current Story backup there
+5. The user can open, copy, move or delete the files themselves
+6. Story shows when the last backup was made
+
+The important product principle is transparency:
+
+> **Your Story is yours, and you can see where it is stored.**
+
+The app should not require users to understand cloud folders, databases or syncing in order to use Story.
+
+### Phase 3, restore on another device
+
+A new device should be able to discover an existing Story backup and restore it.
+
+The intended flow is:
+
+> Open Story → Connect Google Drive → Story finds your backup → Confirm restore → Continue your Story
+
+Restoring should never silently overwrite existing local data. The app should first create a local backup of the current state and clearly identify which Story version is being restored.
+
+### Phase 4, consider multi-device sync later
+
+True synchronisation between multiple devices is explicitly separate from backup.
+
+That introduces additional complexity around conflicting changes, merge behaviour, concurrent edits, and offline changes on multiple devices.
+
+This is **not part of the current MVP plan**. The first goal is reliable local persistence plus simple, transparent backup and restore.
+
+---
+
+## Data ownership principle
+
+Story should remain **local-first and user-owned**.
+
+The product should not require:
+
+- a Story account
+- a Story-hosted cloud database
+- a permanent internet connection
+- proprietary data storage
+- a hidden server-side copy of personal information
+
+The public GitHub repository contains the application code, not users' personal Stories.
+
+A user should be able to move their Story between devices using a portable backup without depending on Story's continued existence as a service.
+
+---
+
+## Planned architecture
+
+```text
+                    STORY APP
+                        │
+              ┌─────────┴─────────┐
+              │                   │
+         Local Story         Optional backup
+          IndexedDB          Google Drive
+              │                   │
+              └────── portable ───┘
+                    .story file
+```
+
+The local database is the working copy.
+
+Google Drive is a user-controlled backup and restore destination.
+
+The portable `.story` format is the escape hatch: the user's data should remain usable outside the app.
+
+---
 
 ## Updating the app
 
-This repo is public (required for free GitHub Pages hosting), but that only exposes the app's code — never your personal data. Changes are pushed here by Claude on request, using a short-lived GitHub access token.
+This repo is public (required for free GitHub Pages hosting), but that only exposes the app's code, never your personal data. Changes are pushed here by an AI agent on request, using a short-lived GitHub access token.
 
 **Workflow for making changes:**
 
-1. Go to `github.com/settings/tokens` (classic tokens) or `github.com/settings/personal-access-tokens/new` (fine-grained — preferred, since it can be scoped to just this repo)
+1. Go to `github.com/settings/personal-access-tokens/new` (fine-grained, preferred) or `github.com/settings/tokens` (classic)
 2. Generate a new token:
    - **Fine-grained:** limit *Repository access* to `story-app` only, and set the **Contents** permission to **Read and write**
    - **Classic:** check only the `public_repo` scope (not the top-level `repo` box, which grants access to private repos too)
-   - Set a short expiration (7–30 days)
-3. Copy the token and paste it into the chat with Claude, along with what you want changed
-4. Claude edits the code, commits, and pushes to `main` — GitHub Pages redeploys automatically within about a minute
-5. **Once the changes are in, delete the token** (Settings → Developer settings → Tokens) rather than leaving it active — generate a fresh one next time
+   - Set a short expiration (7 to 30 days)
+3. Copy the token and paste it into the chat, along with what you want changed
+4. The agent edits the code, commits, and pushes to `main`. GitHub Pages redeploys automatically within about a minute
+5. **Once the changes are in, delete the token** rather than leaving it active
 
 A token pasted into chat only ever grants write access to this one repository's code, never to your personal data, which never leaves your device.
 
+---
+
 ## Current status
 
-MVP prototype, personal use. Core loop (create Story → add Steps → complete Steps → see Journey) is functional.
+MVP prototype. The core Story → Goal → Step → Journey loop is functional.
 
-**Known open items:**
-- Goal `progress` is currently a manually-set number, not derived from actual Step completion
-- Chapters exist as a data object but aren't yet visually connected to the Steps/Goals within them
-- Data persistence uses `localStorage`; migrating to `IndexedDB` would be more durable
-- No import/restore from an exported JSON file yet — export only
-- "Monthly Issue" feature (a magazine-style summary of your Journey, with photos) is planned but not started — the data model doesn't yet support attaching photos to Activity entries
+### Current priorities
+
+1. **Persistence foundation**
+   - IndexedDB
+   - schema versioning
+   - migrations
+   - import / restore
+
+2. **Backup**
+   - portable `.story` export
+   - optional Google Drive backup
+
+3. **Product refinement**
+   - Step lifecycle
+   - Goal / Chapter relationships
+   - responsive polish
+
+Further product expansion should wait until these foundations are reliable.
+
+### Deliberately removed
+
+- **Points.** The variable point economy (+1/+2/+3/+5) has been removed entirely, from the UI and the data model. The Journey count ("3 steps taken") is now the only progress signal, because it is the only honest one.
+- **Goal progress percentages.** Removed rather than left showing a permanent 0%. A real progress model is wanted, but it should be designed deliberately rather than faked.
+
+### Known open items
+
+- Chapters exist as a data object but aren't yet visually connected to the Steps and Goals within them
+- No Import/Restore yet, Export only
+- "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries.
