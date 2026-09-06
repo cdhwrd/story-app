@@ -56,7 +56,7 @@ The aim is that someone can open the public Story app on a new device and either
 
 - ✅ Primary data moved from `localStorage` to **IndexedDB** (single-document; the whole state is one record)
 - ✅ `navigator.storage.persist()` requested on launch, so data is not routinely evictable
-- ✅ Explicit **schema versioning** (`schemaVersion`, currently 1) with an ordered migration runner
+- ✅ Explicit **schema versioning** (`schemaVersion`, currently 2) with an ordered migration runner
 - ✅ Automatic **pre-change backups** kept in a separate store, last 3 retained, written before any migration or restore
 - ✅ **Import / Restore** from an exported file, with shape validation and an explicit confirmation naming what will be replaced
 - ✅ One-time automatic migration of existing `localStorage` data on first launch

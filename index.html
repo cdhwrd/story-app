@@ -149,14 +149,10 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .section-rule:after{content:"";height:1px;background:var(--rule);flex:1}
 .main-story{
   display:grid;grid-template-columns:1.08fr .92fr;gap:0;
-  background:var(--signal-red);color:#fff;border:2px solid var(--ink);box-shadow:8px 9px 0 rgba(30,27,23,.18);
+  background:var(--poster-blue);color:#fff;border:2px solid var(--ink);box-shadow:8px 9px 0 rgba(30,27,23,.18);
   min-height:275px;
   position:relative;overflow:hidden;
 }
-/* Corner accent: inset on purpose so it never needs clipping. A rotated
-   shape positioned with negative offsets was not reliably clipped by
-   overflow:hidden on all mobile browsers, so it bled past the card edge. */
-.main-story:after{content:"";position:absolute;right:24px;bottom:24px;width:110px;height:110px;background:var(--poster-yellow);transform:rotate(18deg);opacity:.96}
 .main-story-left{padding:26px 26px 24px;background:linear-gradient(135deg,#f7f1e5,#eee5d5);border-right:1px solid var(--rule)}
 .main-story-right{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
 .story-badge{
@@ -400,7 +396,6 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
   /* Offset shadows are decorative; at narrow widths they add horizontal bulk. */
   .north-star,.main-story{box-shadow:4px 5px 0 rgba(30,27,23,.18)}
   .story-card,.panel,.goal-hero-panel{box-shadow:3px 4px 0 rgba(30,27,23,.12)}
-  .main-story:after{width:80px;height:80px;right:16px;bottom:16px}
   .data-footer{padding:13px 13px 20px}
   .data-footer-inner{gap:9px}
   .data-actions{width:100%}
@@ -454,7 +449,7 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
 <div class="step-stamp" id="stepStamp"><strong>STEP TAKEN</strong></div>
 
 <script>
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const DEFAULT_STATE = {
   schemaVersion: SCHEMA_VERSION,
   northStar:"",
@@ -521,13 +516,23 @@ async function writeBackup(snapshot,reason){
   }catch(e){console.warn("backup failed",e)}
 }
 
-/* Ordered migrations. v1 is the current baseline (post points removal). */
+/* Ordered migrations. v1 is the post-points baseline. v2 renames
+   Goal.target to Goal.detail (same free-text field, clearer name). */
 const MIGRATIONS={
   1:(s)=>{
     // Legacy states carried per-item points and goal progress. Both are gone.
     (s.activities||[]).forEach(a=>{delete a.points});
     (s.tasks||[]).forEach(t=>{delete t.points});
     (s.goals||[]).forEach(g=>{delete g.progress});
+    return s;
+  },
+  2:(s)=>{
+    (s.goals||[]).forEach(g=>{
+      if(g.target!==undefined){
+        if(g.detail===undefined)g.detail=g.target;
+        delete g.target;
+      }
+    });
     return s;
   }
 };
@@ -688,7 +693,7 @@ function renderHome(){
         ${mainGoal?`<div class="goal-feature">
           <div class="goal-label">Goal</div>
           <h3>${esc(mainGoal.title)}</h3>
-          <div class="goal-target">${esc(mainGoal.target||"")}</div>
+          <div class="goal-target">${esc(mainGoal.detail||"")}</div>
         </div>`:""}
       </div>
       <div class="main-story-right">
@@ -732,35 +737,7 @@ function openStory(id){
       <div class="story-head-actions"><button class="btn" id="logStoryBtn">＋ Log</button><button class="btn" id="editStoryBtn">Edit</button></div>
     </div>
 
-    ${highlighted?`<section class="panel goal-hero-panel">
-      <div class="goal-row">
-        <div><div class="eyebrow">Goal</div><h2>${esc(highlighted.title)}</h2><div class="goal-target">${esc(highlighted.target||"")}</div></div>
-      </div>
-    </section>`:""}
-
     <div class="story-cols">
-      <section class="panel">
-        <div class="section-title">
-          <div><div class="kicker">The next chapter starts here</div><h2>Take a Step</h2></div>
-          <div class="count-label">${os.length} available</div>
-        </div>
-        <div class="step-list">
-          ${os.length?os.map(t=>`<div class="step">
-            <button class="step-trigger" data-complete="${t.id}" title="Complete step">→</button>
-            <div class="step-copy"><h4>${esc(t.title)}</h4><div class="step-meta">${stepContext(t)}</div></div>
-          </div>`).join(""):`
-            <div class="step-empty">
-              <div class="empty-title">The road is clear.</div>
-              <p>Your story isn't empty. Add a new step when you see one worth taking.</p>
-              <button class="btn" id="emptyAddStep">＋ Add a step</button>
-            </div>`}
-        </div>
-        <div class="add-step-row">
-          <input id="quickStepInput" placeholder="What is one small step you could take?">
-          <button class="btn primary" id="quickStepAdd">Add</button>
-        </div>
-      </section>
-
       <section class="panel">
         <div class="section-title">
           <div><div class="kicker">Direction</div><h2>Chapters</h2></div>
@@ -772,15 +749,46 @@ function openStory(id){
             return `<div class="list-item"><div class="list-title">${esc(s.title)}</div><div class="list-meta">${chapterGoals.length?chapterGoals.map(g=>esc(g.title)).join(", "):"No goals yet"}</div></div>`;
           }).join(""):`<div class="step-empty"><div class="empty-title">No chapters yet.</div><p>Use chapters for the threads inside this Story.</p></div>`}
         </div>
-        <div class="section-title" style="margin-top:25px">
+      </section>
+
+      ${highlighted?`<section class="panel goal-hero-panel">
+        <div class="goal-row">
+          <div><div class="eyebrow">Goal</div><h2>${esc(highlighted.title)}</h2><div class="goal-target">${esc(highlighted.detail||"")}</div></div>
+        </div>
+      </section>`:""}
+
+      <section class="panel">
+        <div class="section-title">
           <div><div class="kicker">Direction</div><h2>Goals</h2></div>
           <button class="btn" id="addGoalBtn">＋ Goal</button>
         </div>
         <div class="goal-list">
           ${gs.length?gs.map(g=>{
             const chapterName=state.subs.find(s=>s.id===g.subQuestId)?.title;
-            return `<div class="list-item"><div class="list-title">${esc(g.title)}</div><div class="list-meta">${[chapterName,g.target].filter(Boolean).map(esc).join(" · ")}</div></div>`;
+            return `<div class="list-item"><div class="list-title">${esc(g.title)}</div><div class="list-meta">${[chapterName,g.detail].filter(Boolean).map(esc).join(" · ")}</div></div>`;
           }).join(""):`<div class="step-empty"><div class="empty-title">No goals yet.</div><p>A goal gives the Story somewhere meaningful to go.</p></div>`}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <div><div class="kicker">Direction</div><h2>Plan the next step</h2></div>
+          <div class="count-label">${os.length} available</div>
+        </div>
+        <div class="step-list">
+          ${os.length?os.map(t=>`<div class="step">
+            <button class="step-trigger" data-complete="${t.id}" title="Complete step">→</button>
+            <div class="step-copy"><h4>${esc(t.title)}</h4><div class="step-meta">${stepContext(t)}</div></div>
+          </div>`).join(""):`
+            <div class="step-empty">
+              <div class="empty-title">The road is clear.</div>
+              <p>Your story isn't empty. Plan a step for when you're ready to take it.</p>
+              <button class="btn" id="emptyAddStep">＋ Add a step</button>
+            </div>`}
+        </div>
+        <div class="add-step-row">
+          <input id="quickStepInput" placeholder="What is one small step you could take?">
+          <button class="btn primary" id="quickStepAdd">Add</button>
         </div>
       </section>
     </div>
@@ -851,12 +859,12 @@ function openGoal(id){
   const chapters=subs(id);
   showModal("Add Goal",`
     <div class="field"><label>Goal</label><input id="goalTitle" placeholder="What do you want this Story to become?"></div>
-    <div class="field"><label>Target</label><input id="goalTarget" placeholder="Optional, e.g. one finished piece"></div>
+    <div class="field"><label>Detail</label><input id="goalDetail" placeholder="Optional, any detail worth noting"></div>
     <div class="field"><label>Chapter</label><select id="goalChapter"><option value="">No chapter</option>${chapters.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join("")}</select></div>
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveGoal">Add goal</button></div>`);
   document.getElementById("saveGoal").onclick=()=>{
     const title=document.getElementById("goalTitle").value.trim();if(!title){toast("Add a goal title");return}
-    state.goals.push({id:"g-"+Date.now(),questId:id,subQuestId:document.getElementById("goalChapter").value||null,title,target:document.getElementById("goalTarget").value.trim(),status:"open",createdAt:new Date().toISOString()});
+    state.goals.push({id:"g-"+Date.now(),questId:id,subQuestId:document.getElementById("goalChapter").value||null,title,detail:document.getElementById("goalDetail").value.trim(),status:"open",createdAt:new Date().toISOString()});
     save();closeModal();openStory(id);toast("Goal added");
   };
 }
