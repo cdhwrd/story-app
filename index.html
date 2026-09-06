@@ -149,9 +149,14 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .section-rule:after{content:"";height:1px;background:var(--rule);flex:1}
 .main-story{
   display:grid;grid-template-columns:1.08fr .92fr;gap:0;
-  background:var(--paper2);border:1px solid var(--rule);box-shadow:var(--shadow);
+  background:var(--signal-red);color:#fff;border:2px solid var(--ink);box-shadow:8px 9px 0 rgba(30,27,23,.18);
   min-height:275px;
+  position:relative;overflow:hidden;
 }
+/* Corner accent: inset on purpose so it never needs clipping. A rotated
+   shape positioned with negative offsets was not reliably clipped by
+   overflow:hidden on all mobile browsers, so it bled past the card edge. */
+.main-story:after{content:"";position:absolute;right:24px;bottom:24px;width:110px;height:110px;background:var(--poster-yellow);transform:rotate(18deg);opacity:.96}
 .main-story-left{padding:26px 26px 24px;background:linear-gradient(135deg,#f7f1e5,#eee5d5);border-right:1px solid var(--rule)}
 .main-story-right{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
 .story-badge{
@@ -346,12 +351,6 @@ body{
 .north-star{background:var(--signal-red);border:2px solid var(--ink);box-shadow:7px 8px 0 rgba(30,27,23,.2);overflow:hidden}
 .north-star:after{border-color:rgba(255,255,255,.55)}
 .north-star .eyebrow,.north-star-edit{color:#fff5e7}
-.main-story{
-  background:var(--signal-red);color:#fff;border:2px solid var(--ink);
-  box-shadow:8px 9px 0 rgba(30,27,23,.18);
-  position:relative;overflow:hidden
-}
-.main-story:after{content:"";position:absolute;right:-40px;bottom:-65px;width:210px;height:210px;background:var(--poster-yellow);transform:rotate(18deg);opacity:.96}
 .main-story-left{background:transparent;border-right:2px solid rgba(30,27,23,.35);position:relative;z-index:1}
 .main-story-right{position:relative;z-index:1}
 .main-story:before{font-size:96px;color:rgba(255,255,255,.22)}
@@ -401,7 +400,7 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
   /* Offset shadows are decorative; at narrow widths they add horizontal bulk. */
   .north-star,.main-story{box-shadow:4px 5px 0 rgba(30,27,23,.18)}
   .story-card,.panel,.goal-hero-panel{box-shadow:3px 4px 0 rgba(30,27,23,.12)}
-  .main-story:after{width:150px;height:150px;right:-50px;bottom:-70px}
+  .main-story:after{width:80px;height:80px;right:16px;bottom:16px}
   .data-footer{padding:13px 13px 20px}
   .data-footer-inner{gap:9px}
   .data-actions{width:100%}

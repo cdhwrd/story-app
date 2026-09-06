@@ -191,5 +191,4 @@ Further product expansion should wait until these foundations are reliable.
 ### Known open items
 
 - Chapters exist as a data object but aren't yet visually connected to the Steps and Goals within them
-- No Import/Restore yet, Export only
 - "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries.
