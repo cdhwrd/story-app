@@ -14,7 +14,7 @@ This is a personal, single-user prototype. It is not a multi-user product.
 
 A single-file web app (HTML/CSS/JS, no build step, no framework) that:
 
-- Organises your life into **Stories** (enduring areas), each with optional **Chapters** (threads), **Goals** (outcomes), and **Steps** (small actions)
+- Organises your life into **Stories** (enduring areas), each with optional **Chapters** (seasons/arcs), **Goals** (outcomes), and **Steps** (small actions). A Chapter groups Goals; a Step belongs to a Goal, not directly to a Chapter
 - Keeps a chronological **Journey**, a record of what you've actually done, not just what's planned
 - Runs entirely in your browser, installable to your Android home screen as a standalone app (PWA)
 - Stores all data locally on your device, nothing is sent to a server
@@ -190,5 +190,4 @@ Further product expansion should wait until these foundations are reliable.
 
 ### Known open items
 
-- Chapters exist as a data object but aren't yet visually connected to the Steps and Goals within them
 - "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries.

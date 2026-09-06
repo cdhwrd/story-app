@@ -767,14 +767,20 @@ function openStory(id){
           <button class="btn" id="addSubBtn">＋ Chapter</button>
         </div>
         <div class="chapter-list">
-          ${ss.length?ss.map(s=>`<div class="list-item"><div class="list-title">${esc(s.title)}</div><div class="list-meta">Chapter · ${esc(s.status)}</div></div>`).join(""):`<div class="step-empty"><div class="empty-title">No chapters yet.</div><p>Use chapters for the threads inside this Story.</p></div>`}
+          ${ss.length?ss.map(s=>{
+            const chapterGoals=gs.filter(g=>g.subQuestId===s.id);
+            return `<div class="list-item"><div class="list-title">${esc(s.title)}</div><div class="list-meta">${chapterGoals.length?chapterGoals.map(g=>esc(g.title)).join(", "):"No goals yet"}</div></div>`;
+          }).join(""):`<div class="step-empty"><div class="empty-title">No chapters yet.</div><p>Use chapters for the threads inside this Story.</p></div>`}
         </div>
         <div class="section-title" style="margin-top:25px">
           <div><div class="kicker">Direction</div><h2>Goals</h2></div>
           <button class="btn" id="addGoalBtn">＋ Goal</button>
         </div>
         <div class="goal-list">
-          ${gs.length?gs.map(g=>`<div class="list-item"><div class="list-title">${esc(g.title)}</div><div class="list-meta">${esc(g.target||"")}</div></div>`).join(""):`<div class="step-empty"><div class="empty-title">No goals yet.</div><p>A goal gives the Story somewhere meaningful to go.</p></div>`}
+          ${gs.length?gs.map(g=>{
+            const chapterName=state.subs.find(s=>s.id===g.subQuestId)?.title;
+            return `<div class="list-item"><div class="list-title">${esc(g.title)}</div><div class="list-meta">${[chapterName,g.target].filter(Boolean).map(esc).join(" · ")}</div></div>`;
+          }).join(""):`<div class="step-empty"><div class="empty-title">No goals yet.</div><p>A goal gives the Story somewhere meaningful to go.</p></div>`}
         </div>
       </section>
     </div>
@@ -801,9 +807,9 @@ function openStory(id){
   document.querySelectorAll("[data-complete]").forEach(b=>b.onclick=()=>completeStep(b.dataset.complete));
 }
 function stepContext(t){
-  const c=state.subs.find(s=>s.id===t.subQuestId)?.title;
-  const g=state.goals.find(s=>s.id===t.goalId)?.title;
-  return [c,g].filter(Boolean).map(esc).join(" · ")||"A step in this Story";
+  const g=state.goals.find(x=>x.id===t.goalId);
+  const c=g?state.subs.find(s=>s.id===g.subQuestId):null;
+  return [c?.title,g?.title].filter(Boolean).map(esc).join(" · ")||"A step in this Story";
 }
 function showStamp(){
   const stamp=document.getElementById("stepStamp");
@@ -818,7 +824,7 @@ function completeStep(id){
 function addQuickStep(id){
   const input=document.getElementById("quickStepInput");
   const title=input.value.trim();if(!title){toast("Add a step first");return}
-  state.tasks.push({id:"t-"+Date.now(),questId:id,subQuestId:null,goalId:goals(id)[0]?.id||null,title,status:"open",createdAt:new Date().toISOString()});
+  state.tasks.push({id:"t-"+Date.now(),questId:id,goalId:goals(id)[0]?.id||null,title,status:"open",createdAt:new Date().toISOString()});
   save();toast("Step added");openStory(id);
 }
 function showModal(title,body){
@@ -842,13 +848,15 @@ function openNorthStar(){
   };
 }
 function openGoal(id){
+  const chapters=subs(id);
   showModal("Add Goal",`
     <div class="field"><label>Goal</label><input id="goalTitle" placeholder="What do you want this Story to become?"></div>
     <div class="field"><label>Target</label><input id="goalTarget" placeholder="Optional, e.g. one finished piece"></div>
+    <div class="field"><label>Chapter</label><select id="goalChapter"><option value="">No chapter</option>${chapters.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join("")}</select></div>
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveGoal">Add goal</button></div>`);
   document.getElementById("saveGoal").onclick=()=>{
     const title=document.getElementById("goalTitle").value.trim();if(!title){toast("Add a goal title");return}
-    state.goals.push({id:"g-"+Date.now(),questId:id,title,target:document.getElementById("goalTarget").value.trim(),status:"open",createdAt:new Date().toISOString()});
+    state.goals.push({id:"g-"+Date.now(),questId:id,subQuestId:document.getElementById("goalChapter").value||null,title,target:document.getElementById("goalTarget").value.trim(),status:"open",createdAt:new Date().toISOString()});
     save();closeModal();openStory(id);toast("Goal added");
   };
 }
