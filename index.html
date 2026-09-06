@@ -327,7 +327,7 @@ body:after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;bac
 .data-footer-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .data-actions{display:flex;gap:8px;flex-wrap:wrap}
 .data-actions .btn{font-size:12px;padding:8px 11px}
-@media(max-width:900px){main{padding-left:13px;padding-right:13px;min-width:0}.story-cols{grid-template-columns:minmax(0,1fr)}.section-title{flex-wrap:wrap;min-width:0}.section-title>*{min-width:0;max-width:100%}.section-title .btn{max-width:100%;white-space:nowrap}.story-head{min-width:0}.story-head>*{min-width:0}.story-head-actions{min-width:0}.add-step-row{min-width:0;max-width:100%;flex-wrap:wrap}.add-step-row input{min-width:0;flex:1 1 180px}.story-card{transform:none}}
+@media(max-width:900px){main{padding-left:13px;padding-right:13px;min-width:0}.story-cols{grid-template-columns:minmax(0,1fr)}.section-title{flex-wrap:wrap;min-width:0}.section-title>*{min-width:0;max-width:100%}.section-title .btn{max-width:100%;white-space:nowrap}.story-head{min-width:0}.story-head>*{min-width:0}.story-head-actions{min-width:0}.add-step-row{min-width:0;max-width:100%;flex-wrap:wrap}/* basis must stay auto: the row becomes a column below 560px, where a fixed basis is read as HEIGHT and balloons the input */.add-step-row input{min-width:0;flex:1 1 auto}.story-card{transform:none}}
 
 /* Bold editorial / travel-poster styling. Image-free, blank-template safe. */
 body{
