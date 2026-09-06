@@ -162,6 +162,8 @@ This repo is public (required for free GitHub Pages hosting), but that only expo
 
 A token pasted into chat only ever grants write access to this one repository's code, never to your personal data, which never leaves your device.
 
+**If you're using the installed PWA and a change doesn't seem to show up:** the service worker is network-first for the app shell, but an already-open PWA still has the *previous* service worker in control until it's replaced. Fully close the app (not just background it) and reopen it; if it still looks stale, do that once more. This was a real bug once already (`CACHE_NAME` never changed, fetch was strict cache-first) — see git history around the "stale index.html" fix if it resurfaces.
+
 ---
 
 ## Current status
