@@ -330,6 +330,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
       <div class="aside-kicker">Stories</div>
       <div class="story-nav" id="storyNav"></div>
       <button class="btn" id="sideAddStory" style="width:100%;margin-top:12px">＋ Add story</button>
+      <button class="btn text" id="sideExportBtn" style="width:100%;margin-top:6px">⇩ Export data</button>
     </aside>
     <main id="main"></main>
   </div>
@@ -347,48 +348,13 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 
 <script>
 const DEFAULT_STATE = {
-  northStar:"Build a life I’m excited to wake up to.",
-  mainStoryId:"q-career",
-  quests:[
-    {id:"q-career",name:"Career",icon:"💼",attention:"max",status:"active",createdAt:"2026-09-01"},
-    {id:"q-writing",name:"Writing",icon:"✍️",attention:"active",status:"active",createdAt:"2026-09-01"},
-    {id:"q-guitar",name:"Guitar",icon:"🎸",attention:"available",status:"active",createdAt:"2026-09-01"},
-    {id:"q-surfing",name:"Surfing",icon:"🏄",attention:"available",status:"active",createdAt:"2026-09-01"},
-    {id:"q-home",name:"Home",icon:"🏠",attention:"background",status:"active",createdAt:"2026-09-01"}
-  ],
-  subs:[
-    {id:"s-current",questId:"q-career",title:"Perform well in current role",status:"active",createdAt:"2026-09-01"},
-    {id:"s-next",questId:"q-career",title:"Find my next career move",status:"active",createdAt:"2026-09-01"},
-    {id:"s-practice",questId:"q-writing",title:"Build a writing practice",status:"active",createdAt:"2026-09-01"},
-    {id:"s-improv",questId:"q-guitar",title:"Improve improvisation",status:"active",createdAt:"2026-09-01"}
-  ],
-  goals:[
-    {id:"g-career",questId:"q-career",title:"Find my next career move",target:"Identify 5 roles worth pursuing",status:"open",createdAt:"2026-09-01",progress:42},
-    {id:"g-role",questId:"q-career",title:"Perform strongly in my current role",target:"Keep performance high while exploring what's next",status:"open",createdAt:"2026-09-01",progress:68},
-    {id:"g-writing",questId:"q-writing",title:"Publish something I’m proud of",target:"One finished piece",status:"open",createdAt:"2026-09-01",progress:36},
-    {id:"g-guitar",questId:"q-guitar",title:"Play confidently with other people",target:"Build a small repertoire",status:"open",createdAt:"2026-09-01",progress:21},
-    {id:"g-surf",questId:"q-surfing",title:"Surf regularly and improve",target:"Surf twice per month",status:"open",createdAt:"2026-09-01",progress:55},
-    {id:"g-home",questId:"q-home",title:"Get on top of the house",target:"Keep the basics under control",status:"open",createdAt:"2026-09-01",progress:48}
-  ],
-  tasks:[
-    {id:"t1",questId:"q-career",subQuestId:"s-next",goalId:"g-career",title:"Update CV",status:"open",createdAt:"2026-09-04",points:2},
-    {id:"t2",questId:"q-career",subQuestId:"s-next",goalId:"g-career",title:"Speak to one recruiter",status:"open",createdAt:"2026-09-04",points:3},
-    {id:"t3",questId:"q-career",subQuestId:"s-current",goalId:"g-role",title:"Prepare weekly update",status:"complete",completedAt:"2026-09-03",createdAt:"2026-09-02",points:1},
-    {id:"t4",questId:"q-writing",subQuestId:"s-practice",goalId:"g-writing",title:"Finish the first section",status:"open",createdAt:"2026-09-03",points:3},
-    {id:"t5",questId:"q-writing",subQuestId:"s-practice",goalId:"g-writing",title:"Write for 20 minutes",status:"open",createdAt:"2026-09-03",points:2},
-    {id:"t6",questId:"q-guitar",subQuestId:"s-improv",goalId:"g-guitar",title:"Practise the blues progression",status:"open",createdAt:"2026-09-03",points:2},
-    {id:"t7",questId:"q-surfing",subQuestId:null,goalId:"g-surf",title:"Check the weekend forecast",status:"open",createdAt:"2026-09-03",points:1},
-    {id:"t8",questId:"q-home",subQuestId:null,goalId:"g-home",title:"Clear the kitchen counter",status:"open",createdAt:"2026-09-03",points:1}
-  ],
-  activities:[
-    {id:"a1",questId:"q-career",taskId:"t3",note:"Prepared weekly update",points:1,date:"2026-09-03"},
-    {id:"a2",questId:"q-career",taskId:null,note:"Reviewed three companies",points:2,date:"2026-09-02"},
-    {id:"a3",questId:"q-writing",taskId:null,note:"Wrote for 35 minutes",points:2,date:"2026-09-04"},
-    {id:"a4",questId:"q-writing",taskId:null,note:"Added an idea to the draft",points:1,date:"2026-09-01"},
-    {id:"a5",questId:"q-guitar",taskId:null,note:"Played for 25 minutes",points:2,date:"2026-08-29"},
-    {id:"a6",questId:"q-surfing",taskId:null,note:"Went surfing",points:3,date:"2026-08-26"},
-    {id:"a7",questId:"q-home",taskId:"t8",note:"Cleared the kitchen counter",points:1,date:"2026-09-02"}
-  ]
+  northStar:"",
+  mainStoryId:null,
+  quests:[],
+  subs:[],
+  goals:[],
+  tasks:[],
+  activities:[]
 };
 
 let state = JSON.parse(localStorage.getItem("storyPrototypeV4") || "null") || JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -405,6 +371,13 @@ function acts(id){return state.activities.filter(x=>x.questId===id).sort((a,b)=>
 function points(id){return acts(id).reduce((n,a)=>n+Number(a.points||0),0)}
 function latest(id){return acts(id)[0]?.date||""}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
+}
 function humanDate(d){
   const today=new Date(); today.setHours(12,0,0,0);
   const date=new Date(d+"T12:00:00");
@@ -426,6 +399,32 @@ function featuredGoal(id){return goals(id)[0]||state.goals.find(x=>x.questId===i
 function renderHome(){
   currentStory=null;renderNav();
   const list=[...state.quests].filter(x=>x.status==="active").sort((a,b)=>attRank[a.attention]-attRank[b.attention]||(latest(b.id)||"").localeCompare(latest(a.id)||""));
+
+  if(list.length===0){
+    document.getElementById("main").innerHTML=`
+      <section class="home-hero">
+        <div>
+          <div class="eyebrow">Your story</div>
+          <h1 class="serif-title">Every life is a story.<br>What's yours?</h1>
+          <p class="hero-note">Start with one part of your life worth paying attention to. Career, Writing, Health — whatever it is. You can add more whenever something new comes into focus.</p>
+        </div>
+        <div class="north-star">
+          <div class="eyebrow">North Star</div>
+          <div class="north-star-text">${state.northStar?esc(state.northStar):"Optional — one sentence that guides the whole story."}</div>
+          <button class="north-star-edit north-star-edit-btn" id="editNorthStar">${state.northStar?"Edit North Star":"Set a North Star"}</button>
+        </div>
+      </section>
+      <div class="section-rule"><span>Begin</span></div>
+      <section class="step-empty" style="padding:38px 20px">
+        <div class="empty-title">The page is blank.</div>
+        <p>Create your first Story to start finding your way. There's nothing else to set up first.</p>
+        <button class="btn primary" id="firstStoryBtn">＋ Create your first Story</button>
+      </section>`;
+    document.getElementById("editNorthStar").onclick=openNorthStar;
+    document.getElementById("firstStoryBtn").onclick=openAddStory;
+    return;
+  }
+
   const main=q(state.mainStoryId)||list[0];
   const mainGoal=main?featuredGoal(main.id):null;
   const mainOpen=main?openTasks(main.id).slice(0,2):[];
@@ -641,6 +640,7 @@ function openChapter(id){
   };
 }
 function openLog(defaultId){
+  if(!state.quests.some(x=>x.status==="active")){toast("Create a Story first");openAddStory();return}
   showModal("Log a Journey Entry",`
     <div class="field"><label>Story</label><select id="logStory">${state.quests.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${x.icon} ${esc(x.name)}</option>`).join("")}</select></div>
     <div class="field"><label>What happened?</label><textarea id="logNote" placeholder="Write a small field note…"></textarea></div>
@@ -684,12 +684,30 @@ function openAddStory(){
     const name=document.getElementById("newStoryName").value.trim();if(!name){toast("Name your Story");return}
     const id="q-"+Date.now();
     state.quests.push({id,name,icon:document.getElementById("newStoryIcon").value||"✦",attention:document.getElementById("newStoryAttention").value,status:"active",createdAt:new Date().toISOString()});
+    if(!state.mainStoryId)state.mainStoryId=id;
     save();closeModal();openStory(id);toast("Story created");
   };
+}
+async function exportData(){
+  const payload=JSON.stringify(state,null,2);
+  const filename=`story-export-${new Date().toISOString().slice(0,10)}.json`;
+  try{
+    const file=new File([payload],filename,{type:"application/json"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:"Story backup",text:"Your Story app data export"});
+      return;
+    }
+  }catch(e){ if(e && e.name==="AbortError")return; /* otherwise fall through to download */ }
+  const url=URL.createObjectURL(new Blob([payload],{type:"application/json"}));
+  const a=document.createElement("a");
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+  toast("Exported — check your Downloads");
 }
 document.getElementById("homeLogBtn").onclick=()=>openLog(currentStory);
 document.getElementById("homeAddStoryBtn").onclick=openAddStory;
 document.getElementById("sideAddStory").onclick=openAddStory;
+document.getElementById("sideExportBtn").onclick=exportData;
 
 renderHome();
 
