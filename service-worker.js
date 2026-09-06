@@ -1,4 +1,4 @@
-const CACHE_NAME = "story-app-v1";
+const CACHE_NAME = "story-app-v2";
 const APP_SHELL = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -18,12 +18,32 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Network-first for the HTML shell (this is a single-file app, so this is
+  // effectively "the app"): a stale cache-first response here means a
+  // deployed fix can be invisible to an installed PWA indefinitely. Fall
+  // back to cache only when there's no network, so offline still works.
+  const isAppShell = event.request.mode === "navigate" || event.request.destination === "document";
+  if (isAppShell) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache-first for everything else (icons, manifest).
   event.respondWith(
     caches.match(event.request).then((cached) => {
       return (
         cached ||
         fetch(event.request).then((response) => {
-          // cache a copy of same-origin GET requests as they're fetched
           if (event.request.method === "GET" && response.ok) {
             const copy = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
