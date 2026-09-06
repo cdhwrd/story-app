@@ -77,7 +77,6 @@ a{text-decoration:none;color:inherit}
   border-radius:50%;display:grid;place-items:center;
   font-size:13px;font-family:var(--sans);font-weight:900;
 }
-.top-actions{display:flex;gap:8px}
 .btn{
   border:1px solid var(--rule);
   background:var(--paper2);
@@ -130,11 +129,12 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .home-hero{
   margin-bottom:28px;
 }
-.home-hero h1{font-size:clamp(46px,7vw,78px);line-height:.94;margin:7px 0 0;max-width:760px}
-.hero-note{font-family:var(--serif);font-size:17px;color:var(--muted);margin:13px 0 0;max-width:670px;line-height:1.4}
+.home-hero h1{font-size:clamp(28px,4.4vw,40px);line-height:1.02;margin:6px 0 0;max-width:760px;text-transform:uppercase}
+.hero-note{font-family:var(--serif);font-size:15px;color:var(--muted);margin:9px 0 0;max-width:670px;line-height:1.4}
 .section-rule{display:flex;align-items:center;gap:12px;margin:34px 0 15px}
+.section-rule .btn{flex:0 0 auto;order:1;font-size:12px;padding:7px 11px}
 .section-rule span{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:900;white-space:nowrap}
-.section-rule:after{content:"";height:1px;background:var(--rule);flex:1}
+.section-rule:after{content:"";height:2px;background:var(--ink);flex:1}
 .main-story{
   display:grid;grid-template-columns:1.08fr .92fr;gap:0;
   background:var(--poster-blue);color:#fff;border:2px solid var(--ink);box-shadow:8px 9px 0 rgba(30,27,23,.18);
@@ -268,7 +268,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   aside{display:none}
   main{padding:23px 13px 55px}
   /* hero is single-column since the North Star was retired */
-  .home-hero h1{font-size:56px}
   .main-story{grid-template-columns:1fr}
   .main-story-left{border-right:0;border-bottom:1px solid var(--rule)}
   .story-grid{grid-template-columns:1fr}
@@ -279,9 +278,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 }
 @media(max-width:560px){
   .brand{display:none}
-  .top-actions{width:100%}
-  .top-actions .btn{flex:1;padding:10px 8px}
-  .home-hero h1{font-size:47px}
   .main-story h2{font-size:45px}
   .main-story-left,.main-story-right{padding:21px}
   .panel{padding:18px}
@@ -323,9 +319,7 @@ body{
 .btn.primary{background:var(--signal-red);border-color:var(--ink)}
 .btn.primary:hover{background:#ad241b}
 .section-rule:before{content:"";width:11px;height:11px;background:var(--poster-blue);transform:rotate(45deg);flex:0 0 auto}
-.section-rule:after{height:2px;background:var(--ink)}
 .home-hero{position:relative}
-.home-hero h1{text-transform:uppercase;line-height:.87}
 .main-story-left{background:transparent;border-right:2px solid rgba(30,27,23,.35);position:relative;z-index:1}
 .main-story-right{position:relative;z-index:1}
 .main-story:before{font-size:96px;color:rgba(255,255,255,.22)}
@@ -368,7 +362,6 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
   .section-title .btn{max-width:100%;white-space:normal}
 }
 @media(max-width:560px){
-  .home-hero h1{font-size:45px}
   .main-story h2{font-size:46px}
   .story-head h1{font-size:40px}
   /* Offset shadows are decorative; at narrow widths they add horizontal bulk. */
@@ -389,10 +382,6 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
 <div class="app">
   <header class="topbar">
     <div class="brand"><div class="brand-mark">S</div><div>Story</div></div>
-    <div class="top-actions">
-      <button class="btn" id="homeLogBtn">＋ Log</button>
-      <button class="btn primary" id="homeAddStoryBtn">＋ Story</button>
-    </div>
   </header>
 
   <div class="layout">
@@ -682,7 +671,7 @@ function renderHome(){
       </div>
     </section>`:""}
 
-    <div class="section-rule"><span>Stories</span></div>
+    <div class="section-rule"><span>Stories</span><button class="btn" id="homeAddStoryBtn">＋ Story</button></div>
     <section class="story-grid">
       ${others.map(x=>{
         const g=featuredGoal(x.id); const a=latest(x.id);
@@ -697,6 +686,9 @@ function renderHome(){
     </section>`;
   document.querySelectorAll("[data-card]").forEach(el=>el.onclick=()=>openStory(el.dataset.card));
   document.querySelectorAll("[data-open-main]").forEach(el=>el.onclick=()=>openStory(el.dataset.openMain));
+  // Lives inside re-rendered markup, so it must be rebound on every render.
+  const addBtn=document.getElementById("homeAddStoryBtn");
+  if(addBtn)addBtn.onclick=openAddStory;
 }
 function openStory(id){
   currentStory=id;renderNav();
@@ -982,8 +974,6 @@ function showExportFallback(payload,filename){
     }
   };
 }
-document.getElementById("homeLogBtn").onclick=()=>openLog(currentStory);
-document.getElementById("homeAddStoryBtn").onclick=openAddStory;
 document.getElementById("sideAddStory").onclick=openAddStory;
 document.getElementById("sideExportBtn").onclick=exportData;
 document.getElementById("sideImportBtn").onclick=()=>document.getElementById("importFile").click();
