@@ -102,7 +102,25 @@ The local database is the source of truth. The app works fully offline with no a
 
 **Restore replaces rather than merges.** Merging would require resolving duplicate IDs; replace is predictable, and the automatic pre-restore backup is the safety net.
 
-### Phase 2, user-owned Google Drive backup
+### Phase 2, user-owned Google Drive backup — DONE
+
+- ✅ Optional **Connect Google Drive** in the data footer
+- ✅ Scope is `drive.file` only, so Story can only ever see files it created itself, never the rest of the user's Drive
+- ✅ Creates a visible `Story` folder in My Drive, holding `story-current.json` plus the last 3 dated snapshots
+- ✅ Backs up on launch and 8s after any change, only when connected and online
+- ✅ Every Drive failure is non-fatal; the local database stays the source of truth
+
+The OAuth client ID is public by design for browser apps, and there is no
+client secret in this flow. The consent screen is in Testing mode with a
+single test user, so a one-time unverified-app screen is expected.
+
+**Known limitation:** the browser token flow issues short-lived tokens and
+no refresh token, so reconnecting roughly once per session is expected.
+Removing that would need a server, which would break the local-first
+principle. Backups also only run while the app is open; there is no
+background sync on the web.
+
+#### Original intent
 
 Google Drive should be an **optional backup layer**, not the application's database.
 

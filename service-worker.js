@@ -1,4 +1,4 @@
-const CACHE_NAME = "story-app-v2";
+const CACHE_NAME = "story-app-v3";
 const APP_SHELL = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -18,6 +18,11 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Only ever handle our own origin. Google's auth script and the Drive API
+  // must go straight to the network: caching them could serve a stale or
+  // opaque response in place of a live API call.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
+
   // Network-first for the HTML shell (this is a single-file app, so this is
   // effectively "the app"): a stale cache-first response here means a
   // deployed fix can be invisible to an installed PWA indefinitely. Fall

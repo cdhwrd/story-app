@@ -432,6 +432,7 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
         <button class="btn text" id="sideExportBtn">⇩ Export data</button>
         <button class="btn text" id="sideImportBtn">⇧ Restore from file</button>
         <button class="btn text" id="sidePasteBtn">⇧ Paste backup</button>
+        <button class="btn text" id="driveBtn">☁ Connect Google Drive</button>
         <input type="file" id="importFile" accept="application/json,.json" style="display:none">
       </div>
       <div id="storageStatus" class="storage-status"></div>
@@ -597,6 +598,7 @@ function save(){
     try{
       await idbPut(STORE,state,STATE_KEY);
       saveFailed=false;
+      scheduleDriveBackup();
     }catch(e){
       if(!saveFailed){saveFailed=true;toast("Could not save. Export your data.")}
       console.error("save failed",e);
@@ -1029,9 +1031,158 @@ document.getElementById("sideAddStory").onclick=openAddStory;
 document.getElementById("sideExportBtn").onclick=exportData;
 document.getElementById("sideImportBtn").onclick=()=>document.getElementById("importFile").click();
 document.getElementById("sidePasteBtn").onclick=openPasteRestore;
+document.getElementById("driveBtn").onclick=()=>{
+  if(!driveEnabled()){connectDrive();return}
+  showModal("Google Drive",`
+    <p style="margin:0 0 6px;font-size:14px">Story keeps a backup in a <strong>Story</strong> folder in your Drive, which you can open and copy yourself.</p>
+    <p style="margin:0 0 14px;font-size:14px;color:var(--muted)">Your Story still lives on this device. Drive is only a copy.</p>
+    <div class="modal-footer"><button class="btn" id="driveOff">Disconnect</button><button class="btn primary" id="driveNow">Back up now</button></div>`);
+  document.getElementById("driveNow").onclick=async()=>{closeModal();toast("Backing up");await backupToDrive()};
+  document.getElementById("driveOff").onclick=()=>{closeModal();disconnectDrive()};
+};
 document.getElementById("importFile").addEventListener("change",e=>{
   const f=e.target.files[0]; if(f)importData(f); e.target.value="";
 });
+
+/* ---- Google Drive backup (optional layer) ------------------------------
+   Drive is a backup destination, never the source of truth. Every failure
+   here is non-fatal: the app must keep working offline with no account.
+   Uses the GIS token flow, which issues short-lived tokens and no refresh
+   token, so reconnecting periodically is expected rather than a bug.     */
+const DRIVE_CLIENT_ID="290703972261-umj36gubstreucn506s7cge8ug1vp11l.apps.googleusercontent.com";
+const DRIVE_SCOPE="https://www.googleapis.com/auth/drive.file";
+const DRIVE_FOLDER="Story";
+const DRIVE_CURRENT="story-current.json";
+const DRIVE_KEEP_DATED=3;
+let driveToken=null, driveTokenExpiry=0, driveTokenClient=null, driveBackupTimer=null, driveBusy=false, driveError=null;
+
+function driveEnabled(){return !!state.driveEnabled}
+function loadGsi(){
+  if(window.google?.accounts?.oauth2)return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const existing=document.getElementById("gsiScript");
+    if(existing){existing.addEventListener("load",()=>resolve());existing.addEventListener("error",reject);return}
+    const s=document.createElement("script");
+    s.id="gsiScript";s.src="https://accounts.google.com/gsi/client";s.async=true;s.defer=true;
+    s.onload=()=>resolve();s.onerror=()=>reject(new Error("Could not load Google sign-in"));
+    document.head.appendChild(s);
+  });
+}
+async function getDriveToken(interactive){
+  if(driveToken && Date.now()<driveTokenExpiry-60000)return driveToken;
+  await loadGsi();
+  return new Promise((resolve,reject)=>{
+    if(!driveTokenClient){
+      driveTokenClient=google.accounts.oauth2.initTokenClient({
+        client_id:DRIVE_CLIENT_ID, scope:DRIVE_SCOPE, callback:()=>{}
+      });
+    }
+    driveTokenClient.callback=(resp)=>{
+      if(resp.error||!resp.access_token){reject(new Error(resp.error||"No access token"));return}
+      driveToken=resp.access_token;
+      driveTokenExpiry=Date.now()+(Number(resp.expires_in||3600)*1000);
+      resolve(driveToken);
+    };
+    driveTokenClient.error_callback=(err)=>reject(new Error(err?.type||"Authorisation cancelled"));
+    // Silent refresh is only possible once the user has consented before.
+    try{driveTokenClient.requestAccessToken({prompt:interactive?"consent":""})}
+    catch(e){reject(e)}
+  });
+}
+async function driveFetch(url,opts={}){
+  const token=await getDriveToken(false);
+  const res=await fetch(url,{...opts,headers:{Authorization:"Bearer "+token,...(opts.headers||{})}});
+  if(res.status===401){driveToken=null;driveTokenExpiry=0;throw new Error("Drive authorisation expired")}
+  if(!res.ok)throw new Error("Drive request failed ("+res.status+")");
+  return res;
+}
+async function driveFolderId(){
+  const q=encodeURIComponent(`name='${DRIVE_FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const res=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
+  const data=await res.json();
+  if(data.files&&data.files.length)return data.files[0].id;
+  const made=await driveFetch("https://www.googleapis.com/drive/v3/files",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:DRIVE_FOLDER,mimeType:"application/vnd.google-apps.folder"})
+  });
+  return (await made.json()).id;
+}
+async function driveListInFolder(folderId){
+  const q=encodeURIComponent(`'${folderId}' in parents and trashed=false`);
+  const res=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&orderBy=name`);
+  return (await res.json()).files||[];
+}
+async function driveUpload(folderId,name,payload,existingId){
+  if(existingId){
+    return driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media`,{
+      method:"PATCH",headers:{"Content-Type":"application/json"},body:payload
+    });
+  }
+  const boundary="story"+Date.now();
+  const meta=JSON.stringify({name,parents:[folderId]});
+  const body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`+
+             `--${boundary}\r\nContent-Type: application/json\r\n\r\n${payload}\r\n--${boundary}--`;
+  return driveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{
+    method:"POST",headers:{"Content-Type":`multipart/related; boundary=${boundary}`},body
+  });
+}
+/* Chooses which dated snapshots to delete. Pure, so it can be tested. */
+function datedToDelete(files,keep){
+  const dated=files.filter(f=>/^story-\d{4}-\d{2}-\d{2}\.json$/.test(f.name))
+                   .sort((a,b)=>a.name.localeCompare(b.name));
+  return dated.slice(0,Math.max(0,dated.length-keep));
+}
+async function backupToDrive(){
+  if(!driveEnabled()||driveBusy)return;
+  if(navigator.onLine===false)return;
+  driveBusy=true;
+  try{
+    const payload=JSON.stringify(state,null,2);
+    const folderId=await driveFolderId();
+    const files=await driveListInFolder(folderId);
+    const current=files.find(f=>f.name===DRIVE_CURRENT);
+    await driveUpload(folderId,DRIVE_CURRENT,payload,current?.id);
+    const datedName=`story-${new Date().toISOString().slice(0,10)}.json`;
+    const sameDay=files.find(f=>f.name===datedName);
+    await driveUpload(folderId,datedName,payload,sameDay?.id);
+    for(const old of datedToDelete(files.concat(sameDay?[]:[{name:datedName}]),DRIVE_KEEP_DATED)){
+      if(old.id)await driveFetch(`https://www.googleapis.com/drive/v3/files/${old.id}`,{method:"DELETE"}).catch(()=>{});
+    }
+    state.driveBackupAt=new Date().toISOString();
+    driveError=null;
+    // Direct write, NOT save(): save() schedules a Drive backup, which would
+    // re-enter here every 8 seconds forever.
+    try{await idbPut(STORE,state,STATE_KEY)}catch(e){console.error("save after backup failed",e)}
+  }catch(e){
+    console.error("drive backup failed",e);
+    driveError=e.message||"Backup failed";
+  }finally{
+    driveBusy=false;
+    renderStorageStatus();
+  }
+}
+function scheduleDriveBackup(){
+  if(!driveEnabled())return;
+  clearTimeout(driveBackupTimer);
+  driveBackupTimer=setTimeout(backupToDrive,8000);
+}
+async function connectDrive(){
+  try{
+    await getDriveToken(true);
+    state.driveEnabled=true;driveError=null;save();
+    toast("Connected, backing up now");
+    await backupToDrive();
+    renderStorageStatus();
+  }catch(e){
+    console.error("drive connect failed",e);
+    toast(e.message==="Could not load Google sign-in"?"Couldn't reach Google, are you online?":"Drive not connected");
+  }
+}
+function disconnectDrive(){
+  state.driveEnabled=false;driveError=null;driveToken=null;driveTokenExpiry=0;
+  save();renderStorageStatus();
+  toast("Drive disconnected, your Story stays on this device");
+}
 
 function renderStorageStatus(){
   const el=document.getElementById("storageStatus"); if(!el)return;
@@ -1044,7 +1195,17 @@ function renderStorageStatus(){
     bits.push("Never exported");
   }
   if(persistGranted===false)bits.push("Storage not protected by this browser");
+  if(driveEnabled()){
+    if(driveError)bits.push("Drive: "+driveError);
+    else if(state.driveBackupAt){
+      const mins=Math.floor((Date.now()-new Date(state.driveBackupAt))/60000);
+      bits.push(mins<2?"Backed up to Drive just now":mins<60?`Backed up to Drive ${mins} min ago`:
+        Math.floor(mins/60)<24?`Backed up to Drive ${Math.floor(mins/60)}h ago`:"Backed up to Drive "+new Date(state.driveBackupAt).toLocaleDateString());
+    }else bits.push("Drive connected");
+  }
   el.textContent=bits.join(" · ");
+  const btn=document.getElementById("driveBtn");
+  if(btn)btn.textContent=driveEnabled()?"⛭ Drive connected":"☁ Connect Google Drive";
 }
 
 (async function boot(){
@@ -1059,6 +1220,8 @@ function renderStorageStatus(){
   renderHome();
   renderStorageStatus();
   if(result.migratedFromLegacy)toast("Your data has been moved to safer storage");
+  // Drive is optional and must never delay or block startup.
+  if(driveEnabled())setTimeout(()=>{backupToDrive().catch(()=>{})},2000);
 })();
 
 if ("serviceWorker" in navigator) {
