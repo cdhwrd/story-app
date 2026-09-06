@@ -633,7 +633,7 @@ function renderNav(){
   const nav=document.getElementById("storyNav");
   const list=[...state.quests].filter(x=>x.status==="active").sort((a,b)=>attRank[a.attention]-attRank[b.attention]||(latest(b.id)||"").localeCompare(latest(a.id)||""));
   nav.innerHTML=list.map(x=>`<button class="${currentStory===x.id?"active":""}" data-nav="${x.id}">
-    <span class="nav-icon">${x.icon}</span><span class="nav-name">${esc(x.name)}</span>${state.mainStoryId===x.id?`<span class="nav-main">★</span>`:""}
+    <span class="nav-icon">${esc(x.icon)}</span><span class="nav-name">${esc(x.name)}</span>${state.mainStoryId===x.id?`<span class="nav-main">★</span>`:""}
   </button>`).join("");
   nav.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>openStory(b.dataset.nav));
 }
@@ -715,7 +715,7 @@ function renderHome(){
       ${others.map(x=>{
         const g=featuredGoal(x.id); const a=latest(x.id);
         return `<button class="story-card" data-card="${x.id}">
-          <div><div class="card-icon">${x.icon}</div><h3>${esc(x.name)}</h3>
+          <div><div class="card-icon">${esc(x.icon)}</div><h3>${esc(x.name)}</h3>
             <div class="card-goal-label">Goal</div>
             <div class="card-goal">${g?esc(g.title):"Choose a direction"}</div>
           </div>
@@ -735,7 +735,7 @@ function openStory(id){
   document.getElementById("main").innerHTML=`
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
-      <div class="story-head-icon">${story.icon}</div>
+      <div class="story-head-icon">${esc(story.icon)}</div>
       <div><div class="eyebrow">${state.mainStoryId===id?"★ Main Story":"Story"}</div><h1>${esc(story.name)}</h1><div class="story-head-meta">${history.length} steps taken · ${history.length} journey entr${history.length===1?"y":"ies"}</div></div>
       <div class="story-head-actions"><button class="btn" id="logStoryBtn">＋ Log</button><button class="btn" id="editStoryBtn">Edit</button></div>
     </div>
@@ -884,7 +884,7 @@ function openChapter(id){
 function openLog(defaultId){
   if(!state.quests.some(x=>x.status==="active")){toast("Create a Story first");openAddStory();return}
   showModal("Log a Journey Entry",`
-    <div class="field"><label>Story</label><select id="logStory">${state.quests.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${x.icon} ${esc(x.name)}</option>`).join("")}</select></div>
+    <div class="field"><label>Story</label><select id="logStory">${state.quests.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${esc(x.icon)} ${esc(x.name)}</option>`).join("")}</select></div>
     <div class="field"><label>What happened?</label><textarea id="logNote" placeholder="Write a small field note…"></textarea></div>
     <div class="field"><label>Date</label><input id="logDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveLog">Add to Journey</button></div>`);
