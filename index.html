@@ -49,7 +49,7 @@ button{cursor:pointer}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--terracotta);outline-offset:2px}
 a{text-decoration:none;color:inherit}
 
-.app{min-height:100vh}
+.app{min-height:100vh;overflow-x:hidden;max-width:100vw}
 .topbar{
   height:70px;
   border-bottom:1px solid var(--rule);
@@ -90,7 +90,7 @@ a{text-decoration:none;color:inherit}
 .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn.ink-outline{background:transparent;border-color:var(--ink)}
 .btn.text{background:transparent;border-color:transparent;color:var(--muted)}
-.layout{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 70px)}
+.layout{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 70px);min-width:0}
 aside{
   border-right:1px solid var(--rule);
   padding:24px 16px;
@@ -321,7 +321,11 @@ body:after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;bac
 .step-trigger{box-shadow:2px 2px 0 rgba(70,52,34,.07)}
 .journey{position:relative;overflow:hidden}
 .count-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.storage-status{font-size:10px;color:var(--muted);margin:9px 10px 0;line-height:1.4}
+.storage-status{font-size:10px;color:var(--muted);line-height:1.4}
+.data-footer{border-top:2px solid var(--ink);background:rgba(246,241,232,.6);padding:14px 28px 22px}
+.data-footer-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.data-actions{display:flex;gap:8px;flex-wrap:wrap}
+.data-actions .btn{font-size:12px;padding:8px 11px}
 @media(max-width:900px){main{padding-left:13px;padding-right:13px;min-width:0}.story-cols{grid-template-columns:minmax(0,1fr)}.section-title{flex-wrap:wrap;min-width:0}.section-title>*{min-width:0;max-width:100%}.section-title .btn{max-width:100%;white-space:nowrap}.story-head{min-width:0}.story-head>*{min-width:0}.story-head-actions{min-width:0}.add-step-row{min-width:0;max-width:100%;flex-wrap:wrap}.add-step-row input{min-width:0;flex:1 1 180px}.story-card{transform:none}}
 
 /* Bold editorial / travel-poster styling. Image-free, blank-template safe. */
@@ -338,7 +342,6 @@ body{
 .section-rule:before{content:"";width:11px;height:11px;background:var(--poster-blue);transform:rotate(45deg);flex:0 0 auto}
 .section-rule:after{height:2px;background:var(--ink)}
 .home-hero{position:relative}
-.home-hero:before{content:"VOL. 01 / THE LIFE EDITION";position:absolute;left:0;top:-18px;font-size:8px;letter-spacing:.22em;font-weight:900;color:var(--muted)}
 .home-hero h1{text-transform:uppercase;line-height:.87}
 .north-star{background:var(--signal-red);border:2px solid var(--ink);box-shadow:7px 8px 0 rgba(30,27,23,.2)}
 .north-star:after{border-color:rgba(255,255,255,.55)}
@@ -394,6 +397,14 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
   .home-hero h1{font-size:45px}
   .main-story h2{font-size:46px}
   .story-head h1{font-size:40px}
+  /* Offset shadows are decorative; at narrow widths they add horizontal bulk. */
+  .north-star,.main-story{box-shadow:4px 5px 0 rgba(30,27,23,.18)}
+  .story-card,.panel,.goal-hero-panel{box-shadow:3px 4px 0 rgba(30,27,23,.12)}
+  .main-story:after{width:150px;height:150px;right:-50px;bottom:-70px}
+  .data-footer{padding:13px 13px 20px}
+  .data-footer-inner{gap:9px}
+  .data-actions{width:100%}
+  .data-actions .btn{flex:1}
   .story-head-actions{grid-template-columns:1fr}
   .add-step-row{flex-direction:column}
   .add-step-row input,.add-step-row .btn{width:100%}
@@ -416,13 +427,20 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
       <div class="aside-kicker">Stories</div>
       <div class="story-nav" id="storyNav"></div>
       <button class="btn" id="sideAddStory" style="width:100%;margin-top:12px">＋ Add story</button>
-      <button class="btn text" id="sideExportBtn" style="width:100%;margin-top:6px">⇩ Export data</button>
-      <button class="btn text" id="sideImportBtn" style="width:100%;margin-top:2px">⇧ Restore from file</button>
-      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
-      <div id="storageStatus" class="storage-status"></div>
     </aside>
     <main id="main"></main>
   </div>
+
+  <footer class="data-footer">
+    <div class="data-footer-inner">
+      <div class="data-actions">
+        <button class="btn text" id="sideExportBtn">⇩ Export data</button>
+        <button class="btn text" id="sideImportBtn">⇧ Restore from file</button>
+        <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+      </div>
+      <div id="storageStatus" class="storage-status"></div>
+    </div>
+  </footer>
 </div>
 
 <div class="modal-backdrop" id="modal">
@@ -926,6 +944,7 @@ async function exportData(){
     const file=new File([payload],filename,{type:"application/json"});
     if(navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file],title:"Story backup",text:"Your Story app data export"});
+      save(); renderStorageStatus();
       return;
     }
   }catch(e){ if(e && e.name==="AbortError")return; /* otherwise fall through to download */ }
@@ -934,6 +953,7 @@ async function exportData(){
   a.href=url;a.download=filename;document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
   toast("Exported, check your Downloads");
+  renderStorageStatus();
 }
 document.getElementById("homeLogBtn").onclick=()=>openLog(currentStory);
 document.getElementById("homeAddStoryBtn").onclick=openAddStory;
