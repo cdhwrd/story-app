@@ -174,7 +174,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 }
 .step-line:last-child{border-bottom:0}
 .step-title{font-weight:760;font-size:13px}
-.point-badge{color:var(--gold);font-weight:900;font-size:12px;white-space:nowrap}
+.step-count{color:var(--gold);font-weight:900;font-size:12px;white-space:nowrap}
 .open-story{
   align-self:flex-start;border:0;background:transparent;padding:0;color:var(--ink);
   font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:900;
@@ -231,7 +231,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .step-copy{min-width:0}
 .step h4{margin:0;font-size:14px}
 .step-meta{font-size:11px;color:var(--muted);margin-top:3px}
-.step-points{color:var(--gold);font-weight:900;font-size:12px}
+.step-count{color:var(--gold);font-weight:900;font-size:12px}
 .step-empty{
   border:1px dashed #cfc5b4;padding:20px 15px;text-align:center;background:#faf6ee;
 }
@@ -254,7 +254,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .journal-date{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:900}
 .journal-note{font-family:var(--serif);font-size:20px;line-height:1.12;margin:4px 0}
 .journal-meta{font-size:11px;color:var(--muted)}
-.journal-points{color:var(--gold);font-weight:900;font-size:12px}
+.step-count{color:var(--gold);font-weight:900;font-size:12px}
 .north-star-edit-btn{font-size:12px}
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(25,21,17,.52);display:none;align-items:center;justify-content:center;padding:17px;z-index:60}
@@ -323,8 +323,94 @@ body:after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;bac
 .story-card{border:0;border-top:5px solid var(--olive);box-shadow:5px 7px 0 rgba(72,56,37,.05),0 12px 25px rgba(42,31,20,.06);transform:rotate(-.15deg)}.story-card:nth-child(even){transform:rotate(.15deg)}.story-card:hover{transform:translateY(-4px) rotate(0)}.story-card:after{content:"";position:absolute;right:14px;bottom:13px;width:18px;height:18px;border-right:1px solid #c9bba7;border-bottom:1px solid #c9bba7}
 .goal-hero-panel{background:#e8dfcf;border:0;border-top:6px solid var(--terracotta);box-shadow:6px 7px 0 rgba(72,50,35,.07),0 14px 29px rgba(45,34,23,.06)}.panel{border:0;border-top:4px solid var(--rule);box-shadow:4px 6px 0 rgba(73,57,38,.04),0 10px 23px rgba(43,32,21,.05)}
 .step-trigger{border-radius:3px;background:#faf2e5;box-shadow:2px 2px 0 rgba(70,52,34,.07)}.step-trigger:hover{background:var(--terracotta);border-color:var(--terracotta);color:#fff}.journey{background:#f8f2e7;position:relative;overflow:hidden}.journey:after{content:"FIELD NOTES";position:absolute;right:18px;top:14px;font-size:9px;letter-spacing:.18em;color:#b2a594;font-weight:900}.journal-entry:before{background:var(--terracotta);border-radius:1px;transform:rotate(45deg)}
-.point-badge,.step-points,.journal-points{display:none}.goal-points{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.step-count,.step-count,.step-count{display:none}.goal-points{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 @media(max-width:900px){main{padding-left:13px;padding-right:13px;min-width:0}.story-cols{grid-template-columns:minmax(0,1fr)}.section-title{flex-wrap:wrap;min-width:0}.section-title>*{min-width:0;max-width:100%}.section-title .btn{max-width:100%;white-space:nowrap}.story-head{min-width:0}.story-head>*{min-width:0}.story-head-actions{min-width:0}.add-step-row{min-width:0;max-width:100%;flex-wrap:wrap}.add-step-row input{min-width:0;flex:1 1 180px}.story-card{transform:none}.story-card:nth-child(even){transform:none}}
+
+
+/* V7 — bold editorial / European travel-poster layer. Image-free, blank-template safe. */
+:root{
+  --signal-red:#cf2d22;
+  --poster-yellow:#f2cf35;
+  --poster-blue:#315da8;
+  --poster-cyan:#2f8991;
+  --poster-orange:#df6a2d;
+}
+body{
+  background:
+    radial-gradient(circle at 12% 16%,rgba(255,255,255,.55),transparent 28%),
+    radial-gradient(circle at 88% 30%,rgba(242,207,53,.13),transparent 20%),
+    var(--paper);
+}
+.topbar{border-bottom:2px solid var(--ink)}
+.btn{border:1.5px solid var(--ink);border-radius:3px}
+.btn.primary{background:var(--signal-red);border-color:var(--ink)}
+.btn.primary:hover{background:#ad241b}
+.section-rule:before{content:"";width:11px;height:11px;background:var(--poster-blue);transform:rotate(45deg);flex:0 0 auto}
+.section-rule:after{height:2px;background:var(--ink)}
+.home-hero{position:relative}
+.home-hero:before{content:"VOL. 01 / THE LIFE EDITION";position:absolute;left:0;top:-18px;font-size:8px;letter-spacing:.22em;font-weight:900;color:var(--muted)}
+.home-hero h1{text-transform:uppercase;line-height:.87}
+.north-star{background:var(--signal-red);border:2px solid var(--ink);box-shadow:7px 8px 0 rgba(30,27,23,.2)}
+.north-star:after{border-color:rgba(255,255,255,.55)}
+.north-star .eyebrow,.north-star-edit{color:#fff5e7}
+.main-story{
+  background:var(--signal-red);color:#fff;border:2px solid var(--ink);
+  box-shadow:8px 9px 0 rgba(30,27,23,.18)
+}
+.main-story:after{content:"";position:absolute;right:-40px;bottom:-65px;width:210px;height:210px;background:var(--poster-yellow);transform:rotate(18deg);opacity:.96}
+.main-story-left{background:transparent;border-right:2px solid rgba(30,27,23,.35);position:relative;z-index:1}
+.main-story-right{position:relative;z-index:1}
+.main-story:before{font-size:96px;color:rgba(255,255,255,.22)}
+.main-story h2{color:#fff;text-transform:uppercase;font-size:62px}
+.main-story .story-subline,.main-story .goal-label,.main-story .goal-target,.main-story .goal-stat,.main-story .mini-label{color:#fff3e7}
+.story-badge{background:var(--poster-yellow);border:2px solid var(--ink);color:var(--ink)}
+.goal-feature,.step-teaser{border-color:rgba(255,255,255,.5)}
+.step-line{border-color:rgba(255,255,255,.35)}
+.goal-progress{background:#8f2b24}.goal-progress>span{background:var(--poster-yellow)}
+.open-story{color:#fff;border-bottom:2px solid var(--poster-yellow);padding-bottom:4px}
+.story-card{border:2px solid var(--ink);border-top-width:8px;box-shadow:6px 7px 0 rgba(30,27,23,.14)}
+.story-card:nth-child(1){border-top-color:var(--poster-blue);background:#e9eef9}
+.story-card:nth-child(2){border-top-color:var(--poster-cyan);background:#e7f2ef}
+.story-card:nth-child(3){border-top-color:var(--poster-yellow);background:#fbf4ce}
+.story-card:nth-child(4){border-top-color:var(--poster-orange);background:#fae6d8}
+.story-card:nth-child(5){border-top-color:var(--signal-red);background:#f7ddd7}
+.story-card h3{text-transform:uppercase;font-size:35px}
+.story-head{border-bottom:2px solid var(--ink);padding-bottom:13px}
+.story-head h1{text-transform:uppercase}
+.story-head-icon{border:2px solid var(--ink);box-shadow:3px 3px 0 rgba(30,27,23,.13)}
+.goal-hero-panel{background:var(--poster-yellow);border:2px solid var(--ink);border-top:8px solid var(--signal-red)}
+.goal-hero-panel .goal-progress{background:#aa9230}
+.panel{border:2px solid var(--ink);border-top-width:7px;box-shadow:6px 7px 0 rgba(30,27,23,.1)}
+.section-title h2{text-transform:uppercase}
+.step{border-color:#c9bda9}
+.step-trigger{border:2px solid var(--ink);border-radius:2px;background:var(--signal-red);color:#fff}
+.step-trigger:hover{background:var(--poster-yellow);color:var(--ink)}
+.add-step-row{border-top:1px solid #c9bda9;padding-top:12px}
+.add-step-row input{border:2px solid var(--ink);border-radius:2px}
+.journey{background:#f8f0df;border-top-color:var(--poster-blue)}
+.journey-track:before{width:2px;background:var(--ink)}
+.journal-entry:before{width:12px;height:12px;background:var(--signal-red);border-radius:0;transform:rotate(45deg);left:-23px}
+.journal-date{color:var(--poster-blue)}
+.journal-note{font-size:23px}
+.journal-note:after{content:" ↗";font-family:var(--sans);font-size:15px;color:var(--signal-red)}
+/* Prevent mobile action menus and headers from escaping the viewport. */
+main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.section-title,.add-step-row{min-width:0;max-width:100%}
+@media(max-width:900px){
+  .main-story-left{border-right:0;border-bottom:2px solid rgba(30,27,23,.35)}
+  .story-head{flex-wrap:wrap}
+  .story-head-actions{width:100%;margin-left:0;display:grid;grid-template-columns:1fr 1fr}
+  .story-head-actions .btn{width:100%;min-width:0}
+  .section-title{flex-wrap:wrap;align-items:flex-start}
+  .section-title .btn{max-width:100%;white-space:normal}
+}
+@media(max-width:560px){
+  .home-hero h1{font-size:45px}
+  .main-story h2{font-size:46px}
+  .story-head h1{font-size:40px}
+  .story-head-actions{grid-template-columns:1fr}
+  .add-step-row{flex-direction:column}
+  .add-step-row input,.add-step-row .btn{width:100%}
+}
 
 </style>
 </head>
@@ -475,7 +561,7 @@ function renderHome(){
         <div>
           <div class="mini-label">Next steps</div>
           <div class="step-teaser">
-            ${mainOpen.length?mainOpen.map(t=>`<div class="step-line"><span class="step-title">${esc(t.title)}</span><span class="point-badge">+${Number(t.points||1)}</span></div>`).join(""):`<div class="step-line"><span class="step-title">No steps queued</span><span class="point-badge">＋</span></div>`}
+            ${mainOpen.length?mainOpen.map(t=>`<div class="step-line"><span class="step-title">${esc(t.title)}</span><span class="step-count">+${Number(t.points||1)}</span></div>`).join(""):`<div class="step-line"><span class="step-title">No steps queued</span><span class="step-count">＋</span></div>`}
           </div>
         </div>
         <button class="open-story" data-open-main="${main.id}">Open story →</button>
@@ -531,7 +617,7 @@ function openStory(id){
           ${os.length?os.map(t=>`<div class="step">
             <button class="step-trigger" data-complete="${t.id}" title="Complete step">→</button>
             <div class="step-copy"><h4>${esc(t.title)}</h4><div class="step-meta">${stepContext(t)}</div></div>
-            <div class="step-points">+${Number(t.points||1)}</div>
+            <div class="step-count">+${Number(t.points||1)}</div>
           </div>`).join(""):`
             <div class="step-empty">
               <div class="empty-title">The road is clear.</div>
@@ -570,7 +656,7 @@ function openStory(id){
         ${history.length?history.map(a=>`<div class="journal-entry">
           <div class="journal-date">${humanDate(a.date)}</div>
           <div class="journal-note">${esc(a.note)}</div>
-          <div class="journal-meta">${a.taskId?"Step completed":"Activity logged"} <span class="journal-points">· +${Number(a.points||0)}</span></div>
+          <div class="journal-meta">${a.taskId?"Step completed":"Activity logged"} <span class="step-count">· +${Number(a.points||0)}</span></div>
         </div>`).join(""):`<div class="step-empty"><div class="empty-title">Your Journey begins with a step.</div><p>Complete a step or log something you did.</p></div>`}
       </div>
     </section>`;
