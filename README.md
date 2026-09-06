@@ -32,11 +32,47 @@ A single-file web app (HTML/CSS/JS, no build step, no framework) that:
 
 ## Where your data lives
 
-All Stories, Goals, Steps, and Journey entries are stored in your browser's local storage, scoped to your device only. Nobody else can see it, not even via this repo, which only contains app *code*, never your personal data.
+All Stories, Chapters, Goals, Steps, and Journey entries are stored on your device only. Nobody else can see them, not even via this repo, which only contains app *code*, never your personal data.
 
-Data is stored in **IndexedDB**, and the app asks the browser for *persistent storage* on launch so it is exempt from routine eviction. The sidebar shows when you last exported and warns if the browser declined to protect your storage.
+Data is stored in **IndexedDB**, and the app asks the browser for *persistent storage* on launch so it is exempt from routine eviction. The footer shows when you last exported and warns if the browser declined to protect your storage.
 
 Even so, **export regularly** using the **⇩ Export data** button. Uninstalling the app or clearing site data will still remove everything, and there is no cloud copy until Phase 2.
+
+---
+
+## Data model
+
+The whole state is a single record in IndexedDB (see the single-document decision below). Current `schemaVersion` is **2**.
+
+```text
+Story  (state.quests)
+  └── Chapter  (state.subs)          sub.questId → Story
+        └── Goal  (state.goals)      goal.subQuestId → Chapter (nullable)
+              └── Step  (state.tasks)    task.goalId → Goal (nullable)
+
+Journey  (state.activities)          activity.questId → Story
+```
+
+Every item also carries `questId`, so a Story's contents can be fetched without walking the tree.
+
+**Internal names differ from the UI names**, for historical reasons. Don't rename these casually; a rename means a migration:
+
+| UI name | State key | Notes |
+|---|---|---|
+| Story | `quests` | `id`, `name`, `icon`, `attention`, `status` |
+| Chapter | `subs` | `id`, `questId`, `title`, `status` |
+| Goal | `goals` | `id`, `questId`, `subQuestId`, `title`, `detail`, `status` |
+| Step | `tasks` | `id`, `questId`, `goalId`, `title`, `status`, `completedAt` |
+| Journey entry | `activities` | `id`, `questId`, `taskId`, `note`, `date` |
+
+Relationships are **real foreign key fields**, not a generic tag or polymorphic relation system.
+
+A Step links to its Chapter *transitively*, through its Goal. Steps have no direct chapter field. There used to be an unused `task.subQuestId` (always written as `null`, never set by any UI); it was removed when the hierarchy was settled.
+
+### Migrations
+
+- **v1** stripped per-item `points` and `goal.progress`, both deliberately removed features
+- **v2** renamed `goal.target` to `goal.detail`, carrying existing text across rather than dropping it
 
 ---
 
@@ -168,19 +204,21 @@ A token pasted into chat only ever grants write access to this one repository's 
 
 ## Current status
 
-MVP prototype. The core Story → Goal → Step → Journey loop is functional.
+MVP prototype. The core Story → Chapter → Goal → Step → Journey loop is functional.
 
 ### Current priorities
 
 1. ~~**Persistence foundation**~~ — done, see Phase 1 above
 
-2. **Backup**
+2. ~~**Goal / Chapter relationships**~~ — done, see Data model above
+
+3. **Backup**
    - portable `.story` export
    - optional Google Drive backup
 
-3. **Product refinement**
+4. **Product refinement**
    - Step lifecycle
-   - Goal / Chapter relationships
+   - editing existing Chapters and Goals
    - responsive polish
 
 Further product expansion should wait until these foundations are reliable.
@@ -189,7 +227,18 @@ Further product expansion should wait until these foundations are reliable.
 
 - **Points.** The variable point economy (+1/+2/+3/+5) has been removed entirely, from the UI and the data model. The Journey count ("3 steps taken") is now the only progress signal, because it is the only honest one.
 - **Goal progress percentages.** Removed rather than left showing a permanent 0%. A real progress model is wanted, but it should be designed deliberately rather than faked.
+- **The yellow corner square on the Main Story card.** A rotated decorative shape that repeatedly escaped its parent on mobile. Removed outright rather than tuned again. Don't reintroduce offset or rotated decoration that depends on `overflow:hidden` to stay inside its card.
+- **Goal "target".** The field was free text that read as a measurable target it never was. Renamed to "detail" in v2, not deleted.
+
+### Design decisions
+
+- Main Story card is **blue**; North Star is **red**. They were both red and read as the same object.
+- "Plan the next step", not "Take a Step". The panel is a queue of upcoming steps, so the label shouldn't imply they're already done. The separate **＋ Log** action is for recording what actually happened.
+- Story detail sections render in hierarchy order: Chapters → Goal highlight → Goals → Steps → Journey.
 
 ### Known open items
 
+- No edit UI for Chapters or Goals. Both can only be set at creation, so a Goal's chapter can't be reassigned afterwards, and goals created before the chapter field exists stay chapterless
+- `chapter.status` (`active` / `dormant`) exists in the data and filters the list, but nothing in the UI can set it
+- Step lifecycle is one-way: a step can be completed but not reopened or deleted
 - "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries.
