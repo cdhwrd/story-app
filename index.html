@@ -1037,7 +1037,7 @@ document.getElementById("driveBtn").onclick=()=>{
     <p style="margin:0 0 6px;font-size:14px">Story keeps a backup in a <strong>Story</strong> folder in your Drive, which you can open and copy yourself.</p>
     <p style="margin:0 0 14px;font-size:14px;color:var(--muted)">Your Story still lives on this device. Drive is only a copy.</p>
     <div class="modal-footer"><button class="btn" id="driveOff">Disconnect</button><button class="btn primary" id="driveNow">Back up now</button></div>`);
-  document.getElementById("driveNow").onclick=async()=>{closeModal();toast("Backing up");await backupToDrive()};
+  document.getElementById("driveNow").onclick=async()=>{closeModal();toast("Backing up");await backupToDrive(true)};
   document.getElementById("driveOff").onclick=()=>{closeModal();disconnectDrive()};
 };
 document.getElementById("importFile").addEventListener("change",e=>{
@@ -1068,8 +1068,30 @@ function loadGsi(){
     document.head.appendChild(s);
   });
 }
+function readStoredToken(){
+  // sessionStorage, not IndexedDB: the token should die with the session
+  // rather than being persisted alongside the user's Story.
+  try{
+    const raw=sessionStorage.getItem("storyDriveToken");
+    if(!raw)return false;
+    const t=JSON.parse(raw);
+    if(t&&t.token&&Date.now()<t.expiry-60000){driveToken=t.token;driveTokenExpiry=t.expiry;return true}
+  }catch(e){}
+  return false;
+}
+function storeToken(){
+  try{sessionStorage.setItem("storyDriveToken",JSON.stringify({token:driveToken,expiry:driveTokenExpiry}))}catch(e){}
+}
+function haveLiveToken(){
+  if(driveToken&&Date.now()<driveTokenExpiry-60000)return true;
+  return readStoredToken();
+}
 async function getDriveToken(interactive){
-  if(driveToken && Date.now()<driveTokenExpiry-60000)return driveToken;
+  if(haveLiveToken())return driveToken;
+  // Without an explicit request, never open a sign-in popup. GIS shows a
+  // window even for a silent refresh, which turns every page refresh into
+  // a sign-in prompt.
+  if(!interactive)throw new Error("Reconnect to back up");
   await loadGsi();
   return new Promise((resolve,reject)=>{
     if(!driveTokenClient){
@@ -1081,13 +1103,23 @@ async function getDriveToken(interactive){
       if(resp.error||!resp.access_token){reject(new Error(resp.error||"No access token"));return}
       driveToken=resp.access_token;
       driveTokenExpiry=Date.now()+(Number(resp.expires_in||3600)*1000);
+      storeToken();
       resolve(driveToken);
     };
     driveTokenClient.error_callback=(err)=>reject(new Error(err?.type||"Authorisation cancelled"));
-    // Silent refresh is only possible once the user has consented before.
-    try{driveTokenClient.requestAccessToken({prompt:interactive?"consent":""})}
-    catch(e){reject(e)}
+    driveTokenClient.requestAccessToken({prompt:""});
   });
+}
+async function driveFetch(url,opts={}){
+  const token=await getDriveToken(false);
+  const res=await fetch(url,{...opts,headers:{Authorization:"Bearer "+token,...(opts.headers||{})}});
+  if(res.status===401){
+    driveToken=null;driveTokenExpiry=0;
+    try{sessionStorage.removeItem("storyDriveToken")}catch(e){}
+    throw new Error("Reconnect to back up");
+  }
+  if(!res.ok)throw new Error("Drive request failed ("+res.status+")");
+  return res;
 }
 async function driveFetch(url,opts={}){
   const token=await getDriveToken(false);
@@ -1132,11 +1164,15 @@ function datedToDelete(files,keep){
                    .sort((a,b)=>a.name.localeCompare(b.name));
   return dated.slice(0,Math.max(0,dated.length-keep));
 }
-async function backupToDrive(){
+async function backupToDrive(force){
   if(!driveEnabled()||driveBusy)return;
   if(navigator.onLine===false)return;
+  // Automatic backups must stay silent. Without a live token, wait for the
+  // user rather than interrupting them with a sign-in window.
+  if(!force&&!haveLiveToken()){driveError="Reconnect to back up";renderStorageStatus();return}
   driveBusy=true;
   try{
+    if(force)await getDriveToken(true);
     const payload=JSON.stringify(state,null,2);
     const folderId=await driveFolderId();
     const files=await driveListInFolder(folderId);
@@ -1171,7 +1207,7 @@ async function connectDrive(){
     await getDriveToken(true);
     state.driveEnabled=true;driveError=null;save();
     toast("Connected, backing up now");
-    await backupToDrive();
+    await backupToDrive(true);
     renderStorageStatus();
   }catch(e){
     console.error("drive connect failed",e);
@@ -1180,6 +1216,7 @@ async function connectDrive(){
 }
 function disconnectDrive(){
   state.driveEnabled=false;driveError=null;driveToken=null;driveTokenExpiry=0;
+  try{sessionStorage.removeItem("storyDriveToken")}catch(e){}
   save();renderStorageStatus();
   toast("Drive disconnected, your Story stays on this device");
 }
@@ -1205,7 +1242,8 @@ function renderStorageStatus(){
   }
   el.textContent=bits.join(" · ");
   const btn=document.getElementById("driveBtn");
-  if(btn)btn.textContent=driveEnabled()?"⛭ Drive connected":"☁ Connect Google Drive";
+  if(btn)btn.textContent=!driveEnabled()?"☁ Connect Google Drive":
+    (haveLiveToken()?"⛭ Drive connected":"☁ Tap to back up to Drive");
 }
 
 (async function boot(){

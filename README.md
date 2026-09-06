@@ -116,6 +116,11 @@ single test user, so a one-time unverified-app screen is expected.
 
 **Known limitation:** the browser token flow issues short-lived tokens and
 no refresh token, so reconnecting roughly once per session is expected.
+The token is held in `sessionStorage` so a page refresh does not re-prompt,
+and automatic backups never open a sign-in window: without a live token they
+skip, and the footer button changes to invite an explicit reconnect. GIS
+shows a popup even for a "silent" refresh, so triggering one automatically
+turns every refresh into a sign-in prompt.
 Removing that would need a server, which would break the local-first
 principle. Backups also only run while the app is open; there is no
 background sync on the web.
