@@ -12,6 +12,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
+/* ===== SECTION: tokens ===== */
 :root{
   --paper:#ede5d6;
   --paper2:#fbf7ed;
@@ -309,6 +310,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   .story-head-icon{width:51px;height:51px;font-size:26px}
 }
 
+/* ===== SECTION: styles-poster ===== */
 /* Editorial explorer base: paper texture, offset shadows, poster accents */
 body:after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;background-image:radial-gradient(rgba(55,41,26,.25) .6px,transparent .7px);background-size:19px 21px;z-index:-1}
 .brand-mark{border-radius:4px;transform:rotate(-3deg)}
@@ -428,6 +430,7 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
 <div class="step-stamp" id="stepStamp"><strong>STEP TAKEN</strong></div>
 
 <script>
+/* ===== SECTION: persistence ===== */
 const SCHEMA_VERSION = 2;
 const DEFAULT_STATE = {
   schemaVersion: SCHEMA_VERSION,
@@ -584,6 +587,9 @@ function save(){
     }
   },300);
 }
+/* ===== SECTION: derivations =====
+   Pure functions of state. Everything here is testable and everything
+   here is tested. New logic belongs in this band, not in a renderer. */
 function q(id){return state.quests.find(x=>x.id===id)}
 /* goals()/subs() are the "in play" lists, used for pickers and the
    featured goal. The Story page uses allGoals()/allSubs() so that
@@ -657,6 +663,7 @@ function humanDate(d){
   if(diff<7)return diff+" days ago";
   return date.toLocaleDateString(undefined,{month:"short",day:"numeric"});
 }
+/* ===== SECTION: views ===== */
 function renderNav(){
   const nav=document.getElementById("storyNav");
   const list=activeStories();
@@ -952,6 +959,7 @@ function confirmDelete(title,warning,onConfirm){
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn danger" id="confirmDeleteBtn">Delete</button></div>`);
   document.getElementById("confirmDeleteBtn").onclick=onConfirm;
 }
+/* ===== SECTION: modals ===== */
 function openEditChapter(id){
   const c=state.subs.find(x=>x.id===id); if(!c)return;
   showModal("Edit Chapter",`
@@ -1168,6 +1176,7 @@ function openAddStory(){
     save();closeModal();openStory(id);toast("Story created");
   };
 }
+/* ===== SECTION: backup ===== */
 function validateImport(obj){
   if(!obj||typeof obj!=="object")return "That file isn't a Story export.";
   for(const k of ["quests","subs","goals","tasks","activities"]){

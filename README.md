@@ -40,6 +40,42 @@ Even so, **export regularly** using the **⇩ Export data** button. Uninstalling
 
 ---
 
+## Repository layout
+
+```text
+index.html              the entire app: styles, markup and script inline
+manifest.json           PWA metadata
+service-worker.js       network-first for the shell, cache-first for assets
+tests/                  no-dependency test suite, reads index.html directly
+AGENTS.md               standing instructions for working on this repo
+```
+
+Inside `index.html`, grep for section markers rather than scanning:
+`SECTION: tokens`, `styles-poster`, `persistence`, `derivations`, `views`,
+`modals`, `backup`. Line numbers go stale; markers don't.
+
+### Why one file
+
+Deliberate, not an accident of growth.
+
+- **Atomic deploy.** The styles, markup and script that ship together are always the versions that were tested together.
+- **The service worker makes splitting risky.** It is network-first for the HTML shell but cache-first for everything else, so a separate `app.js` could be served stale against a fresh `index.html`. Splitting would mean reworking the caching strategy in the same change.
+- **No build step**, which keeps the app editable from anywhere and removes a whole category of tooling failure.
+
+The cost is that tests need `tests/harness.js` to pull functions out of the inline script. That is a fair price. If the file passes roughly 2500 lines, split `SECTION: backup` out first, since it is the largest band with the least coupling, and change the service worker in the same commit.
+
+### Tests
+
+```
+node tests/run.js
+```
+
+No dependencies, no install step. The suite reads `index.html`, extracts named functions from the inline script, and exercises the real source rather than a copy. CI runs the same command on every push.
+
+The **derivations** band is where testable logic belongs: pure functions that take state and return data. Anything deciding what is shown, in what order, or what a count is goes there rather than inside a renderer. Renderers turn data into HTML and nothing more.
+
+When refactoring for speed or tidiness, keep the old implementation in the test and assert the new one matches it. `tests/selectors.test.js` is the pattern.
+
 ## Data model
 
 The whole state is a single record in IndexedDB (see the single-document decision below). Current `schemaVersion` is **2**.
