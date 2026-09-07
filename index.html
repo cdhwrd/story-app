@@ -228,6 +228,12 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .chapter-list,.goal-list{display:flex;flex-direction:column}
 .list-item{border-top:1px solid #e7dfd3;padding:12px 0}
 .list-item-lead .list-title{font-size:22px;line-height:1.1}
+.list-item-done .list-title{opacity:.55}
+.list-row{display:flex;align-items:flex-start;gap:10px}
+.list-copy{flex:1;min-width:0}
+.row-edit{flex:0 0 auto;font-size:11px;padding:3px 7px;color:var(--muted)}
+.btn.danger{color:var(--signal-red)}
+.btn.primary.danger,.modal-footer .btn.danger:not(.text){background:var(--signal-red);color:#fff;border-color:var(--signal-red)}
 .list-item:first-child{border-top:0;padding-top:0}
 .list-title{font-family:var(--serif);font-size:19px;line-height:1.05}
 .list-meta{font-size:11px;color:var(--muted);margin-top:4px}
@@ -238,7 +244,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .journal-entry:before{content:"";position:absolute;left:-21px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--terracotta);box-shadow:0 0 0 3px var(--paper2)}
 .journal-date{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:900}
 .journal-note{font-family:var(--serif);font-size:20px;line-height:1.12;margin:4px 0}
-.journal-meta{font-size:11px;color:var(--muted)}
+.journal-meta{font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:10px}
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(25,21,17,.52);display:none;align-items:center;justify-content:center;padding:17px;z-index:60}
 .modal-backdrop.open{display:flex}
@@ -572,8 +578,14 @@ function save(){
   },300);
 }
 function q(id){return state.quests.find(x=>x.id===id)}
+/* goals()/subs() are the "in play" lists, used for pickers and the
+   featured goal. The Story page uses allGoals()/allSubs() so that
+   completing a goal or making a chapter dormant does not hide the only
+   route back to editing it. */
 function goals(id){return state.goals.filter(x=>x.questId===id&&x.status!=="complete")}
 function subs(id){return state.subs.filter(x=>x.questId===id&&x.status!=="dormant")}
+function allGoals(id){return state.goals.filter(x=>x.questId===id)}
+function allSubs(id){return state.subs.filter(x=>x.questId===id)}
 function tasks(id){return state.tasks.filter(x=>x.questId===id)}
 function openTasks(id){return tasks(id).filter(x=>x.status==="open")}
 function acts(id){return state.activities.filter(x=>x.questId===id).sort((a,b)=>b.date.localeCompare(a.date))}
@@ -693,7 +705,7 @@ function renderHome(){
 function openStory(id){
   currentStory=id;renderNav();
   const story=q(id); if(!story)return renderHome();
-  const gs=goals(id), ss=subs(id), os=openTasks(id), history=acts(id);
+  const gs=allGoals(id), ss=allSubs(id), os=openTasks(id), history=acts(id);
   document.getElementById("main").innerHTML=`
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
@@ -711,7 +723,15 @@ function openStory(id){
         <div class="chapter-list">
           ${ss.length?ss.map(s=>{
             const chapterGoals=gs.filter(g=>g.subQuestId===s.id);
-            return `<div class="list-item"><div class="list-title">${esc(s.title)}</div><div class="list-meta">${chapterGoals.length?chapterGoals.map(g=>esc(g.title)).join(", "):"No goals yet"}</div></div>`;
+            return `<div class="list-item">
+              <div class="list-row">
+                <div class="list-copy">
+                  <div class="list-title">${esc(s.title)}</div>
+                  <div class="list-meta">${chapterGoals.length?chapterGoals.map(g=>esc(g.title)).join(", "):"No goals yet"}${s.status==="dormant"?" · dormant":""}</div>
+                </div>
+                <button class="btn text row-edit" data-edit-chapter="${s.id}">Edit</button>
+              </div>
+            </div>`;
           }).join(""):`<div class="step-empty"><div class="empty-title">No chapters yet.</div><p>Use chapters for the threads inside this Story.</p></div>`}
         </div>
       </section>
@@ -725,9 +745,15 @@ function openStory(id){
           ${gs.length?gs.map((g,i)=>{
             const chapterName=state.subs.find(s=>s.id===g.subQuestId)?.title;
             const meta=[chapterName,g.detail].filter(Boolean).map(esc).join(" · ");
-            return `<div class="list-item${i===0?" list-item-lead":""}">
-              <div class="list-title">${esc(g.title)}</div>
-              ${meta?`<div class="list-meta">${meta}</div>`:""}
+            const done=g.status==="complete";
+            return `<div class="list-item${i===0&&!done?" list-item-lead":""}${done?" list-item-done":""}">
+              <div class="list-row">
+                <div class="list-copy">
+                  <div class="list-title">${esc(g.title)}</div>
+                  ${(meta||done)?`<div class="list-meta">${[done?"complete":"",meta].filter(Boolean).join(" · ")}</div>`:""}
+                </div>
+                <button class="btn text row-edit" data-edit-goal="${g.id}">Edit</button>
+              </div>
             </div>`;
           }).join(""):`<div class="step-empty"><div class="empty-title">No goals yet.</div><p>A goal gives the Story somewhere meaningful to go.</p></div>`}
         </div>
@@ -742,6 +768,7 @@ function openStory(id){
           ${os.length?os.map(t=>`<div class="step">
             <button class="step-trigger" data-complete="${t.id}" title="Complete step">→</button>
             <div class="step-copy"><h4>${esc(t.title)}</h4><div class="step-meta">${stepContext(t)}</div></div>
+            <button class="btn text row-edit" data-edit-step="${t.id}">Edit</button>
           </div>`).join(""):`
             <div class="step-empty">
               <div class="empty-title">The road is clear.</div>
@@ -762,7 +789,7 @@ function openStory(id){
         ${history.length?history.map(a=>`<div class="journal-entry">
           <div class="journal-date">${humanDate(a.date)}</div>
           <div class="journal-note">${esc(a.note)}</div>
-          <div class="journal-meta">${a.taskId?"Step completed":"Activity logged"}</div>
+          <div class="journal-meta">${a.taskId?"Step completed":"Activity logged"}<button class="btn text row-edit" data-edit-journey="${a.id}">Edit</button></div>
         </div>`).join(""):`<div class="step-empty"><div class="empty-title">Your Journey begins with a step.</div><p>Complete a step or log something you did.</p></div>`}
       </div>
     </section>`;
@@ -776,6 +803,10 @@ function openStory(id){
   document.getElementById("quickStepInput").addEventListener("keydown",e=>{if(e.key==="Enter")addQuickStep(id)});
   const empty=document.getElementById("emptyAddStep"); if(empty)empty.onclick=()=>document.getElementById("quickStepInput").focus();
   document.querySelectorAll("[data-complete]").forEach(b=>b.onclick=()=>completeStep(b.dataset.complete));
+  document.querySelectorAll("[data-edit-chapter]").forEach(b=>b.onclick=()=>openEditChapter(b.dataset.editChapter));
+  document.querySelectorAll("[data-edit-goal]").forEach(b=>b.onclick=()=>openEditGoal(b.dataset.editGoal));
+  document.querySelectorAll("[data-edit-step]").forEach(b=>b.onclick=()=>openEditStep(b.dataset.editStep));
+  document.querySelectorAll("[data-edit-journey]").forEach(b=>b.onclick=()=>openEditJourney(b.dataset.editJourney));
 }
 function stepContext(t){
   const g=state.goals.find(x=>x.id===t.goalId);
@@ -797,6 +828,139 @@ function addQuickStep(id){
   const title=input.value.trim();if(!title){toast("Add a step first");return}
   state.tasks.push({id:"t-"+Date.now(),questId:id,goalId:goals(id)[0]?.id||null,title,status:"open",createdAt:new Date().toISOString()});
   save();toast("Step added");openStory(id);
+}
+/* ---- Edit and delete -------------------------------------------------
+   Deleting a parent never destroys its children: a Goal outlives its
+   Chapter, a Step outlives its Goal, and a Journey entry outlives the
+   Step that produced it, because the Journey is a record of what
+   actually happened. Only deleting a Story cascades, and that asks
+   first and writes a backup.                                          */
+function confirmDelete(title,warning,onConfirm){
+  showModal(title,`
+    <p style="margin:0 0 14px;font-size:14px">${warning}</p>
+    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn danger" id="confirmDeleteBtn">Delete</button></div>`);
+  document.getElementById("confirmDeleteBtn").onclick=onConfirm;
+}
+function openEditChapter(id){
+  const c=state.subs.find(x=>x.id===id); if(!c)return;
+  showModal("Edit Chapter",`
+    <div class="field"><label>Chapter</label><input id="chapterTitleEdit" value="${esc(c.title)}"></div>
+    <div class="field"><label>Status</label><select id="chapterStatus">${["active","dormant"].map(v=>`<option value="${v}" ${c.status===v?"selected":""}>${v}</option>`).join("")}</select></div>
+    <div class="modal-footer"><button class="btn text danger" id="deleteChapter">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveChapterEdit">Save</button></div>`);
+  document.getElementById("saveChapterEdit").onclick=()=>{
+    const t=document.getElementById("chapterTitleEdit").value.trim();
+    if(!t){toast("Give the chapter a title");return}
+    c.title=t;c.status=document.getElementById("chapterStatus").value;
+    save();closeModal();openStory(c.questId);toast("Chapter updated");
+  };
+  document.getElementById("deleteChapter").onclick=()=>{
+    const affected=state.goals.filter(g=>g.subQuestId===id).length;
+    confirmDelete("Delete Chapter",
+      `Delete <strong>${esc(c.title)}</strong>?`+
+      (affected?` Its ${affected} goal${affected===1?"":"s"} will stay in this Story, just without a chapter.`:""),
+      ()=>{
+        state.goals.forEach(g=>{if(g.subQuestId===id)g.subQuestId=null});
+        state.subs=state.subs.filter(x=>x.id!==id);
+        save();closeModal();openStory(c.questId);toast("Chapter deleted");
+      });
+  };
+}
+function openEditGoal(id){
+  const g=state.goals.find(x=>x.id===id); if(!g)return;
+  const chapters=subs(g.questId);
+  showModal("Edit Goal",`
+    <div class="field"><label>Goal</label><input id="goalTitleEdit" value="${esc(g.title)}"></div>
+    <div class="field"><label>Detail</label><input id="goalDetailEdit" value="${esc(g.detail||"")}"></div>
+    <div class="field"><label>Chapter</label><select id="goalChapterEdit"><option value="">No chapter</option>${chapters.map(c=>`<option value="${c.id}" ${g.subQuestId===c.id?"selected":""}>${esc(c.title)}</option>`).join("")}</select></div>
+    <div class="field"><label>Status</label><select id="goalStatus">${["open","complete"].map(v=>`<option value="${v}" ${g.status===v?"selected":""}>${v}</option>`).join("")}</select></div>
+    <div class="modal-footer"><button class="btn text danger" id="deleteGoal">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveGoalEdit">Save</button></div>`);
+  document.getElementById("saveGoalEdit").onclick=()=>{
+    const t=document.getElementById("goalTitleEdit").value.trim();
+    if(!t){toast("Give the goal a title");return}
+    g.title=t;
+    g.detail=document.getElementById("goalDetailEdit").value.trim();
+    g.subQuestId=document.getElementById("goalChapterEdit").value||null;
+    g.status=document.getElementById("goalStatus").value;
+    save();closeModal();openStory(g.questId);toast("Goal updated");
+  };
+  document.getElementById("deleteGoal").onclick=()=>{
+    const affected=state.tasks.filter(t=>t.goalId===id).length;
+    confirmDelete("Delete Goal",
+      `Delete <strong>${esc(g.title)}</strong>?`+
+      (affected?` Its ${affected} step${affected===1?"":"s"} will stay in this Story, just without a goal.`:""),
+      ()=>{
+        state.tasks.forEach(t=>{if(t.goalId===id)t.goalId=null});
+        state.goals=state.goals.filter(x=>x.id!==id);
+        save();closeModal();openStory(g.questId);toast("Goal deleted");
+      });
+  };
+}
+function openEditStep(id){
+  const t=state.tasks.find(x=>x.id===id); if(!t)return;
+  const gs=goals(t.questId);
+  showModal("Edit Step",`
+    <div class="field"><label>Step</label><input id="stepTitleEdit" value="${esc(t.title)}"></div>
+    <div class="field"><label>Goal</label><select id="stepGoalEdit"><option value="">No goal</option>${gs.map(g=>`<option value="${g.id}" ${t.goalId===g.id?"selected":""}>${esc(g.title)}</option>`).join("")}</select></div>
+    <div class="modal-footer"><button class="btn text danger" id="deleteStep">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveStepEdit">Save</button></div>`);
+  document.getElementById("saveStepEdit").onclick=()=>{
+    const v=document.getElementById("stepTitleEdit").value.trim();
+    if(!v){toast("Give the step a title");return}
+    t.title=v;t.goalId=document.getElementById("stepGoalEdit").value||null;
+    save();closeModal();openStory(t.questId);toast("Step updated");
+  };
+  document.getElementById("deleteStep").onclick=()=>{
+    confirmDelete("Delete Step",
+      `Delete <strong>${esc(t.title)}</strong>? Anything already recorded in your Journey stays.`,
+      ()=>{
+        state.tasks=state.tasks.filter(x=>x.id!==id);
+        save();closeModal();openStory(t.questId);toast("Step deleted");
+      });
+  };
+}
+function openEditJourney(id){
+  const a=state.activities.find(x=>x.id===id); if(!a)return;
+  showModal("Edit Journey entry",`
+    <div class="field"><label>What happened</label><input id="journeyNoteEdit" value="${esc(a.note)}"></div>
+    <div class="field"><label>Date</label><input id="journeyDateEdit" type="date" value="${esc(a.date)}"></div>
+    <div class="modal-footer"><button class="btn text danger" id="deleteJourney">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveJourneyEdit">Save</button></div>`);
+  document.getElementById("saveJourneyEdit").onclick=()=>{
+    const n=document.getElementById("journeyNoteEdit").value.trim();
+    if(!n){toast("Say what happened");return}
+    a.note=n;a.date=document.getElementById("journeyDateEdit").value||a.date;
+    save();closeModal();openStory(a.questId);toast("Journey entry updated");
+  };
+  document.getElementById("deleteJourney").onclick=()=>{
+    confirmDelete("Delete Journey entry",
+      `Delete <strong>${esc(a.note)}</strong> from your Journey? This is a record of something you did.`,
+      ()=>{
+        state.activities=state.activities.filter(x=>x.id!==id);
+        save();closeModal();openStory(a.questId);toast("Journey entry deleted");
+      });
+  };
+}
+async function deleteStory(id){
+  const story=q(id); if(!story)return;
+  const counts={
+    subs:state.subs.filter(x=>x.questId===id).length,
+    goals:state.goals.filter(x=>x.questId===id).length,
+    tasks:state.tasks.filter(x=>x.questId===id).length,
+    acts:state.activities.filter(x=>x.questId===id).length
+  };
+  confirmDelete("Delete Story",
+    `Delete <strong>${esc(story.name)}</strong> and everything in it: `+
+    `${counts.subs} chapter${counts.subs===1?"":"s"}, ${counts.goals} goal${counts.goals===1?"":"s"}, `+
+    `${counts.tasks} step${counts.tasks===1?"":"s"} and ${counts.acts} journey entr${counts.acts===1?"y":"ies"}. `+
+    `This cannot be undone from inside the app, so a backup is saved first.`,
+    async()=>{
+      await writeBackup(JSON.parse(JSON.stringify(state)),"pre-delete-story");
+      state.subs=state.subs.filter(x=>x.questId!==id);
+      state.goals=state.goals.filter(x=>x.questId!==id);
+      state.tasks=state.tasks.filter(x=>x.questId!==id);
+      state.activities=state.activities.filter(x=>x.questId!==id);
+      state.quests=state.quests.filter(x=>x.id!==id);
+      if(state.mainStoryId===id)state.mainStoryId=state.quests[0]?.id||null;
+      save();closeModal();renderHome();toast("Story deleted");
+    });
 }
 function showModal(title,body){
   document.getElementById("modalTitle").textContent=title;
@@ -852,7 +1016,8 @@ function openStoryModal(editId){
     <div class="field"><label>Icon</label><input id="storyIcon" maxlength="2" value="${esc(story.icon)}"></div>
     <div class="field"><label>Attention</label><select id="storyAttention">${["max","active","available","background"].map(v=>`<option value="${v}" ${story.attention===v?"selected":""}>${v.replace("_"," ")}</option>`).join("")}</select></div>
     <div class="field"><label>Story type</label><select id="mainStoryChoice"><option value="no">Other story</option><option value="yes" ${state.mainStoryId===story.id?"selected":""}>Main Story</option></select></div>
-    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveStory">Save</button></div>`);
+    <div class="modal-footer"><button class="btn text danger" id="deleteStoryBtn">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveStory">Save</button></div>`);
+  document.getElementById("deleteStoryBtn").onclick=()=>deleteStory(editId);
   document.getElementById("saveStory").onclick=()=>{
     story.name=document.getElementById("storyName").value.trim()||story.name;
     story.icon=document.getElementById("storyIcon").value||"✦";
