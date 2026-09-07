@@ -215,6 +215,12 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .step-copy{min-width:0}
 .step h4{margin:0;font-size:14px}
 .step-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.step-anchor{font-size:11px;color:var(--ink);opacity:.72;margin-top:3px;font-style:italic}
+.step-marks{font-size:11px;color:var(--muted);margin-top:3px}
+.practice-tag{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:var(--poster-blue);margin-left:7px}
+.step.practice .step-trigger{border:2px solid var(--ink);border-radius:2px;background:var(--poster-blue);color:#fff}
+.step.practice .step-trigger:hover{background:var(--poster-yellow);color:var(--ink)}
+.step.practice .step-trigger.marked{background:var(--poster-yellow);color:var(--ink)}
 .step-empty{
   border:1px dashed #cfc5b4;padding:20px 15px;text-align:center;background:#faf6ee;
 }
@@ -590,6 +596,20 @@ function allGoals(id){return state.goals.filter(x=>x.questId===id)}
 function allSubs(id){return state.subs.filter(x=>x.questId===id)}
 function tasks(id){return state.tasks.filter(x=>x.questId===id)}
 function openTasks(id){return tasks(id).filter(x=>x.status==="open")}
+/* A Practice is the same record as a Step with mode:"practice". It never
+   completes, it accumulates marks. Absent mode means "once", so every
+   task written before this existed keeps behaving exactly as it did. */
+function practices(id){return openTasks(id).filter(x=>x.mode==="practice")}
+function onceSteps(id){return openTasks(id).filter(x=>x.mode!=="practice")}
+/* Derived from the Journey, never stored, so the number can only ever
+   reflect something that actually happened. */
+function markCount(t){return state.activities.filter(a=>a.taskId===t.id).length}
+function marksLine(t){
+  const n=markCount(t);
+  if(!n)return "Ready when you are";
+  if(t.lastMarkedAt===todayLocal())return `Marked today · ${n} in all`;
+  return `${n} mark${n===1?"":"s"} · last ${humanDate(t.lastMarkedAt||todayLocal())}`;
+}
 function acts(id){return state.activities.filter(x=>x.questId===id).sort((a,b)=>b.date.localeCompare(a.date))}
 function latest(id){return acts(id)[0]?.date||""}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -718,7 +738,7 @@ function goalRow(g){
 function openStory(id){
   currentStory=id;renderNav();
   const story=q(id); if(!story)return renderHome();
-  const gs=allGoals(id), ss=allSubs(id), os=openTasks(id), history=acts(id);
+  const gs=allGoals(id), ss=allSubs(id), ps=practices(id), qs=onceSteps(id), history=acts(id);
   document.getElementById("main").innerHTML=`
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
@@ -767,14 +787,23 @@ function openStory(id){
       <section class="panel">
         <div class="section-title">
           <h2>Next step</h2>
-          <div class="count-label">${os.length} planned</div>
+          <div class="count-label">${ps.length?`${ps.length} practice${ps.length===1?"":"s"} · `:""}${qs.length} planned</div>
         </div>
         <div class="step-list">
-          ${os.length?os.map(t=>`<div class="step">
+          ${ps.map(t=>`<div class="step practice">
+            <button class="step-trigger${t.lastMarkedAt===todayLocal()?" marked":""}" data-mark="${t.id}" title="Mark it">✓</button>
+            <div class="step-copy">
+              <h4>${esc(t.title)}<span class="practice-tag">Practice</span></h4>
+              ${t.anchor?`<div class="step-anchor">${esc(t.anchor)}</div>`:""}
+              <div class="step-marks">${marksLine(t)}</div>
+            </div>
+            <button class="icon-btn" data-edit-step="${t.id}" title="Edit practice">✎</button>
+          </div>`).join("")}
+          ${qs.length?qs.map(t=>`<div class="step">
             <button class="step-trigger" data-complete="${t.id}" title="Mark as done">→</button>
             <div class="step-copy"><h4>${esc(t.title)}</h4><div class="step-meta">${stepContext(t)}</div></div>
             <button class="icon-btn" data-edit-step="${t.id}" title="Edit step">✎</button>
-          </div>`).join(""):`
+          </div>`).join(""):ps.length?"":`
             <div class="step-empty">
               <div class="empty-title">The road is clear.</div>
               <p>Plan a step for when you're ready to take it.</p>
@@ -793,7 +822,7 @@ function openStory(id){
         ${history.length?history.map(a=>`<div class="journal-entry">
           <div class="journal-date">${humanDate(a.date)}</div>
           <div class="journal-note">${esc(a.note)}</div>
-          <div class="journal-meta">${a.taskId?"Step completed":"Activity logged"}<button class="icon-btn" data-edit-journey="${a.id}" title="Edit entry">✎</button></div>
+          <div class="journal-meta">${a.kind==="practice"?"Practice marked":a.taskId?"Step completed":"Activity logged"}<button class="icon-btn" data-edit-journey="${a.id}" title="Edit entry">✎</button></div>
         </div>`).join(""):`<div class="step-empty"><div class="empty-title">Your Journey begins with a step.</div><p>Complete a step or log something you did.</p></div>`}
       </div>
     </section>`;
@@ -806,6 +835,7 @@ function openStory(id){
   document.getElementById("quickStepAdd").onclick=()=>addQuickStep(id);
   document.getElementById("quickStepInput").addEventListener("keydown",e=>{if(e.key==="Enter")addQuickStep(id)});
   document.querySelectorAll("[data-complete]").forEach(b=>b.onclick=()=>completeStep(b.dataset.complete));
+  document.querySelectorAll("[data-mark]").forEach(b=>b.onclick=()=>markPractice(b.dataset.mark));
   document.querySelectorAll("[data-edit-chapter]").forEach(b=>b.onclick=()=>openEditChapter(b.dataset.editChapter));
   document.querySelectorAll("[data-edit-goal]").forEach(b=>b.onclick=()=>openEditGoal(b.dataset.editGoal));
   document.querySelectorAll("[data-edit-step]").forEach(b=>b.onclick=()=>openEditStep(b.dataset.editStep));
@@ -816,12 +846,26 @@ function stepContext(t){
   const c=g?state.subs.find(s=>s.id===g.subQuestId):null;
   return [c?.title,g?.title].filter(Boolean).map(esc).join(" · ")||"A step in this Story";
 }
-function showStamp(){
+function showStamp(label){
   const stamp=document.getElementById("stepStamp");
+  stamp.querySelector("strong").textContent=label||"STEP TAKEN";
   stamp.classList.add("show"); setTimeout(()=>stamp.classList.remove("show"),1700);
+}
+/* Marking a Practice writes to the Journey but leaves the record open.
+   One mark per day, so the count stays a record of days practised and a
+   double tap cannot inflate it. Nothing here can produce a miss: an
+   unmarked day simply has no entry. */
+function markPractice(id){
+  const t=state.tasks.find(x=>x.id===id);if(!t||t.mode!=="practice")return;
+  const today=todayLocal();
+  if(t.lastMarkedAt===today){toast("Already marked today");return}
+  t.lastMarkedAt=today;
+  state.activities.push({id:"a-"+Date.now(),questId:t.questId,taskId:t.id,kind:"practice",note:t.title,date:today});
+  save(); showStamp("PRACTICE MARKED"); openStory(t.questId);
 }
 function completeStep(id){
   const t=state.tasks.find(x=>x.id===id);if(!t||t.status==="complete")return;
+  if(t.mode==="practice")return markPractice(id);
   t.status="complete";t.completedAt=todayLocal();
   state.activities.push({id:"a-"+Date.now(),questId:t.questId,taskId:t.id,note:t.title,date:t.completedAt});
   save(); showStamp(); openStory(t.questId);
@@ -901,15 +945,29 @@ function openEditGoal(id){
 function openEditStep(id){
   const t=state.tasks.find(x=>x.id===id); if(!t)return;
   const gs=goals(t.questId);
-  showModal("Edit Step",`
+  const isPractice=t.mode==="practice";
+  showModal(isPractice?"Edit Practice":"Edit Step",`
     <div class="field"><label>Step</label><input id="stepTitleEdit" value="${esc(t.title)}"></div>
+    <div class="field"><label>Kind</label><select id="stepModeEdit">
+      <option value="once" ${isPractice?"":"selected"}>One-off step, it finishes when you do it</option>
+      <option value="practice" ${isPractice?"selected":""}>Practice, something you return to</option>
+    </select></div>
+    <div class="field" id="stepAnchorField" style="${isPractice?"":"display:none"}"><label>Anchor</label><input id="stepAnchorEdit" value="${esc(t.anchor||"")}" placeholder="When or after what? e.g. after morning coffee"></div>
     <div class="field"><label>Goal</label><select id="stepGoalEdit"><option value="">No goal</option>${gs.map(g=>`<option value="${g.id}" ${t.goalId===g.id?"selected":""}>${esc(g.title)}</option>`).join("")}</select></div>
     <div class="modal-footer"><button class="btn text danger" id="deleteStep">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveStepEdit">Save</button></div>`);
+  const modeSel=document.getElementById("stepModeEdit");
+  modeSel.onchange=()=>{
+    document.getElementById("stepAnchorField").style.display=modeSel.value==="practice"?"":"none";
+  };
   document.getElementById("saveStepEdit").onclick=()=>{
     const v=document.getElementById("stepTitleEdit").value.trim();
     if(!v){toast("Give the step a title");return}
+    const mode=modeSel.value;
     t.title=v;t.goalId=document.getElementById("stepGoalEdit").value||null;
-    save();closeModal();openStory(t.questId);toast("Step updated");
+    t.mode=mode;
+    if(mode==="practice"){t.anchor=document.getElementById("stepAnchorEdit").value.trim()||null;t.status="open"}
+    else{delete t.anchor}
+    save();closeModal();openStory(t.questId);toast(mode==="practice"?"Practice updated":"Step updated");
   };
   document.getElementById("deleteStep").onclick=()=>{
     confirmDelete("Delete Step",

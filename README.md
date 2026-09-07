@@ -62,10 +62,26 @@ Every item also carries `questId`, so a Story's contents can be fetched without 
 | Story | `quests` | `id`, `name`, `icon`, `attention`, `status` |
 | Chapter | `subs` | `id`, `questId`, `title`, `status` |
 | Goal | `goals` | `id`, `questId`, `subQuestId`, `title`, `detail`, `status` |
-| Step | `tasks` | `id`, `questId`, `goalId`, `title`, `status`, `completedAt` |
-| Journey entry | `activities` | `id`, `questId`, `taskId`, `note`, `date` |
+| Step | `tasks` | `id`, `questId`, `goalId`, `title`, `status`, `completedAt`, `mode`, `anchor`, `lastMarkedAt` |
+| Journey entry | `activities` | `id`, `questId`, `taskId`, `note`, `date`, `kind` |
 
 Relationships are **real foreign key fields**, not a generic tag or polymorphic relation system.
+
+### Steps and Practices
+
+A Step has two modes, held in `task.mode`:
+
+- `"once"` (the default, and what an absent `mode` means) is the original behaviour. It completes, and it leaves the list.
+- `"practice"` is a habit. It never completes. Marking it writes a Journey entry and leaves the record open, so it stays on the Story page.
+
+They share one record deliberately. A Practice is not a separate entity, it is a Step with a different relationship to time.
+
+Rules that hold the mechanic together:
+
+- **One mark per day.** A second tap on the same day is refused with a neutral message, so the count records days practised and cannot be inflated.
+- **The count is derived**, from Journey entries carrying that `taskId`. It is never stored, so it can only ever reflect something that actually happened.
+- **Presence only, never absence.** The UI shows marks made. It has no cadence target, no denominator, and therefore no shortfall. An unmarked day produces no entry and no indicator. There is deliberately no way to express "3x a week", because a target creates a deficit.
+- `anchor` is the implementation intention ("after morning coffee"), prompted but never required.
 
 A Step links to its Chapter *transitively*, through its Goal. Steps have no direct chapter field. There used to be an unused `task.subQuestId` (always written as `null`, never set by any UI); it was removed when the hierarchy was settled.
 
@@ -268,6 +284,10 @@ Further product expansion should wait until these foundations are reliable.
 
 ### Known open items
 
+- Practices have no ending yet. A Practice can only be deleted, not set down or marked as "woven in" (this is just what I do now, stop counting). A `status` of `resting` / `woven` is the intended next move
+- A Practice can only be created by adding a Step and converting it in the edit modal. Quick-add always produces a one-off, deliberately, to keep that row a single field
+- Converting an existing Step to a Practice brings the record forward but not its history: earlier one-off completions of the same activity stay as separate records and don't gather into the mark count
+- Practices appear in the home page "Next steps" teaser alongside one-off steps, undifferentiated
 - Completed steps aren't listed anywhere, so a step can be completed but not reopened. The Journey records it either way
 - What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
 - The Story page is macro; there is no focused "what do I do now" view yet
