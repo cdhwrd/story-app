@@ -189,9 +189,9 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .story-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
 .back{display:none}
 .story-head-icon{width:58px;height:58px;display:grid;place-items:center;font-size:30px;background:#e4dccd;border:1px solid #cfc5b5}
-.story-head h1{font-family:var(--serif);font-size:58px;line-height:.95;letter-spacing:-.055em;margin:3px 0 5px}
+.story-head h1{font-family:var(--serif);font-size:clamp(30px,6vw,42px);line-height:1;letter-spacing:-.045em;margin:0 0 4px;text-transform:uppercase}
 .story-head-meta{font-size:12px;color:var(--muted)}
-.story-head-actions{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+.story-head-actions{margin-left:auto;display:flex;gap:4px;flex:0 0 auto;align-items:center}
 .panel{
   background:rgba(255,253,248,.86);
   border:1px solid var(--rule);
@@ -201,7 +201,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .story-cols{display:grid;grid-template-columns:1.08fr .92fr;gap:15px}
 .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
 .section-title h2{font-family:var(--serif);font-size:27px;letter-spacing:-.035em;margin:3px 0 0}
-.section-title .kicker{font-size:9px;text-transform:uppercase;letter-spacing:.17em;color:var(--muted);font-weight:900}
 .step-list{display:flex;flex-direction:column}
 .step{
   display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;
@@ -225,18 +224,31 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .add-step-row input{
   flex:1;border:1px solid var(--rule);background:#fff;padding:10px 11px;border-radius:8px;
 }
-.chapter-list,.goal-list{display:flex;flex-direction:column}
-.list-item{border-top:1px solid #e7dfd3;padding:12px 0}
-.list-item-lead .list-title{font-size:22px;line-height:1.1}
-.list-item-done .list-title{opacity:.55}
-.list-row{display:flex;align-items:flex-start;gap:10px}
-.list-copy{flex:1;min-width:0}
-.row-edit{flex:0 0 auto;font-size:11px;padding:3px 7px;color:var(--muted)}
 .btn.danger{color:var(--signal-red)}
 .btn.primary.danger,.modal-footer .btn.danger:not(.text){background:var(--signal-red);color:#fff;border-color:var(--signal-red)}
-.list-item:first-child{border-top:0;padding-top:0}
-.list-title{font-family:var(--serif);font-size:19px;line-height:1.05}
-.list-meta{font-size:11px;color:var(--muted);margin-top:4px}
+.list-meta{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* Direction section: goals nested under their chapter. One block per
+   chapter, plus a trailing block for goals that have no chapter. */
+.chapter-block{border-top:1px solid #e7dfd3;padding:11px 0 3px}
+.chapter-block:first-of-type{border-top:0;padding-top:2px}
+.chapter-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.chapter-name{font-size:10px;letter-spacing:.15em;text-transform:uppercase;font-weight:900;color:var(--muted)}
+.chapter-name-loose{opacity:.7}
+.chapter-dormant{opacity:.6}
+.chapter-empty{font-size:12px;color:var(--muted);padding:5px 0 8px}
+.tag{font-size:9px;letter-spacing:.1em;border:1px solid var(--rule);border-radius:9px;padding:1px 6px;margin-left:7px}
+.goal-row-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0 8px}
+.goal-row-copy{flex:1;min-width:0}
+.goal-row-title{font-family:var(--serif);font-size:19px;line-height:1.1}
+.goal-done .goal-row-title{opacity:.5}
+
+/* Quiet icon button, so the row's content stays the loudest thing in it. */
+.icon-btn{flex:0 0 auto;border:0;background:transparent;color:var(--muted);font-size:15px;line-height:1;padding:4px 5px;cursor:pointer;border-radius:6px}
+.icon-btn:hover{background:rgba(30,27,23,.07);color:var(--ink)}
+.title-actions{display:flex;gap:2px;flex:0 0 auto}
+.head-action{font-size:12px;padding:5px 8px}
+.story-head-copy{flex:1;min-width:0}
 .journey{margin-top:15px}
 .journey-track{position:relative;padding-left:24px}
 .journey-track:before{content:"";position:absolute;left:6px;top:4px;bottom:5px;width:1px;background:#cfc4b4}
@@ -280,7 +292,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   .story-cols{grid-template-columns:1fr}
   .back{display:inline-flex;order:-1}
   .story-head{align-items:center}
-  .story-head h1{font-size:48px}
 }
 @media(max-width:560px){
   .brand{display:none}
@@ -289,9 +300,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   .panel{padding:18px}
   .story-head{gap:11px}
   .story-head-icon{width:51px;height:51px;font-size:26px}
-  .story-head h1{font-size:42px}
-  .story-head-actions{width:100%;margin-left:0}
-  .story-head-actions .btn{flex:1}
   .now-actions{grid-template-columns:1fr}
   .add-step-row{flex-direction:column}
   .add-step-row .btn{width:100%}
@@ -343,9 +351,8 @@ body{
 .story-card:nth-child(5){border-top-color:var(--signal-red);background:#f7ddd7}
 .story-card h3{text-transform:uppercase;font-size:35px}
 .story-head{border-bottom:2px solid var(--ink);padding-bottom:13px}
-.story-head h1{text-transform:uppercase}
 .story-head-icon{border:2px solid var(--ink);box-shadow:3px 3px 0 rgba(30,27,23,.13)}
-.panel{border:2px solid var(--ink);border-top-width:7px;box-shadow:6px 7px 0 rgba(30,27,23,.1)}
+.panel{border:2px solid var(--ink);border-top-width:4px;box-shadow:4px 5px 0 rgba(30,27,23,.09)}
 .section-title h2{text-transform:uppercase}
 .step{border-color:#c9bda9}
 .step-trigger{border:2px solid var(--ink);border-radius:2px;background:var(--signal-red);color:#fff}
@@ -361,15 +368,11 @@ body{
 main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.section-title,.add-step-row{min-width:0;max-width:100%}
 @media(max-width:900px){
   .main-story-left{border-right:0;border-bottom:2px solid rgba(30,27,23,.35)}
-  .story-head{flex-wrap:wrap}
-  .story-head-actions{width:100%;margin-left:0;display:grid;grid-template-columns:1fr 1fr}
-  .story-head-actions .btn{width:100%;min-width:0}
   .section-title{flex-wrap:wrap;align-items:flex-start}
   .section-title .btn{max-width:100%;white-space:normal}
 }
 @media(max-width:560px){
   .main-story h2{font-size:46px}
-  .story-head h1{font-size:40px}
   /* Offset shadows are decorative; at narrow widths they add horizontal bulk. */
   .main-story{box-shadow:4px 5px 0 rgba(30,27,23,.18)}
   .story-card,.panel{box-shadow:3px 4px 0 rgba(30,27,23,.12)}
@@ -377,7 +380,6 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
   .data-footer-inner{gap:9px}
   .data-actions{width:100%}
   .data-actions .btn{flex:1}
-  .story-head-actions{grid-template-columns:1fr}
   .add-step-row{flex-direction:column}
   .add-step-row input,.add-step-row .btn{width:100%}
 }
@@ -702,6 +704,17 @@ function renderHome(){
   const addBtn=document.getElementById("homeAddStoryBtn");
   if(addBtn)addBtn.onclick=openAddStory;
 }
+function goalRow(g){
+  const done=g.status==="complete";
+  const bits=[done?"complete":"",g.detail].filter(Boolean).map(esc).join(" · ");
+  return `<div class="goal-row-item${done?" goal-done":""}">
+    <div class="goal-row-copy">
+      <div class="goal-row-title">${esc(g.title)}</div>
+      ${bits?`<div class="list-meta">${bits}</div>`:""}
+    </div>
+    <button class="icon-btn" data-edit-goal="${g.id}" title="Edit goal">✎</button>
+  </div>`;
+}
 function openStory(id){
   currentStory=id;renderNav();
   const story=q(id); if(!story)return renderHome();
@@ -710,70 +723,61 @@ function openStory(id){
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
       <div class="story-head-icon">${esc(story.icon)}</div>
-      <div><div class="eyebrow">${state.mainStoryId===id?"★ Main Story":"Story"}</div><h1>${esc(story.name)}</h1><div class="story-head-meta">${history.length} steps taken · ${history.length} journey entr${history.length===1?"y":"ies"}</div></div>
-      <div class="story-head-actions"><button class="btn" id="logStoryBtn">＋ Log</button><button class="btn" id="editStoryBtn">Edit</button></div>
+      <div class="story-head-copy">
+        <h1>${esc(story.name)}</h1>
+        <div class="story-head-meta">${state.mainStoryId===id?"★ Main Story · ":""}${history.length} step${history.length===1?"":"s"} taken</div>
+      </div>
+      <div class="story-head-actions">
+        <button class="btn text head-action" id="logStoryBtn">＋ Log</button>
+        <button class="btn text head-action" id="editStoryBtn">Edit</button>
+      </div>
     </div>
 
     <div class="story-cols">
       <section class="panel">
         <div class="section-title">
-          <div><div class="kicker">Direction</div><h2>Chapters</h2></div>
-          <button class="btn" id="addSubBtn">＋ Chapter</button>
+          <h2>Direction</h2>
+          <div class="title-actions">
+            <button class="btn text head-action" id="addSubBtn">＋ Chapter</button>
+            <button class="btn text head-action" id="addGoalBtn">＋ Goal</button>
+          </div>
         </div>
-        <div class="chapter-list">
-          ${ss.length?ss.map(s=>{
-            const chapterGoals=gs.filter(g=>g.subQuestId===s.id);
-            return `<div class="list-item">
-              <div class="list-row">
-                <div class="list-copy">
-                  <div class="list-title">${esc(s.title)}</div>
-                  <div class="list-meta">${chapterGoals.length?chapterGoals.map(g=>esc(g.title)).join(", "):"No goals yet"}${s.status==="dormant"?" · dormant":""}</div>
-                </div>
-                <button class="btn text row-edit" data-edit-chapter="${s.id}">Edit</button>
+        ${(ss.length||gs.length)?`
+          ${ss.map(s=>{
+            const inChapter=gs.filter(g=>g.subQuestId===s.id);
+            return `<div class="chapter-block${s.status==="dormant"?" chapter-dormant":""}">
+              <div class="chapter-head">
+                <div class="chapter-name">${esc(s.title)}${s.status==="dormant"?`<span class="tag">dormant</span>`:""}</div>
+                <button class="icon-btn" data-edit-chapter="${s.id}" title="Edit chapter">✎</button>
               </div>
+              ${inChapter.length?inChapter.map(g=>goalRow(g)).join(""):`<div class="chapter-empty">No goals in this chapter yet.</div>`}
             </div>`;
-          }).join(""):`<div class="step-empty"><div class="empty-title">No chapters yet.</div><p>Use chapters for the threads inside this Story.</p></div>`}
-        </div>
+          }).join("")}
+          ${(()=>{
+            const loose=gs.filter(g=>!g.subQuestId||!ss.some(s=>s.id===g.subQuestId));
+            if(!loose.length)return "";
+            return `<div class="chapter-block">
+              <div class="chapter-head"><div class="chapter-name chapter-name-loose">${ss.length?"Not in a chapter":"Goals"}</div></div>
+              ${loose.map(g=>goalRow(g)).join("")}
+            </div>`;
+          })()}
+        `:`<div class="step-empty"><div class="empty-title">Nothing set yet.</div><p>A goal gives this Story somewhere to go. Chapters group goals if you want them.</p></div>`}
       </section>
 
       <section class="panel">
         <div class="section-title">
-          <div><div class="kicker">Direction</div><h2>Goals</h2></div>
-          <button class="btn" id="addGoalBtn">＋ Goal</button>
-        </div>
-        <div class="goal-list">
-          ${gs.length?gs.map((g,i)=>{
-            const chapterName=state.subs.find(s=>s.id===g.subQuestId)?.title;
-            const meta=[chapterName,g.detail].filter(Boolean).map(esc).join(" · ");
-            const done=g.status==="complete";
-            return `<div class="list-item${i===0&&!done?" list-item-lead":""}${done?" list-item-done":""}">
-              <div class="list-row">
-                <div class="list-copy">
-                  <div class="list-title">${esc(g.title)}</div>
-                  ${(meta||done)?`<div class="list-meta">${[done?"complete":"",meta].filter(Boolean).join(" · ")}</div>`:""}
-                </div>
-                <button class="btn text row-edit" data-edit-goal="${g.id}">Edit</button>
-              </div>
-            </div>`;
-          }).join(""):`<div class="step-empty"><div class="empty-title">No goals yet.</div><p>A goal gives the Story somewhere meaningful to go.</p></div>`}
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="section-title">
-          <div><div class="kicker">Direction</div><h2>Plan the next step</h2></div>
-          <div class="count-label">${os.length} available</div>
+          <h2>Next step</h2>
+          <div class="count-label">${os.length} planned</div>
         </div>
         <div class="step-list">
           ${os.length?os.map(t=>`<div class="step">
-            <button class="step-trigger" data-complete="${t.id}" title="Complete step">→</button>
+            <button class="step-trigger" data-complete="${t.id}" title="Mark as done">→</button>
             <div class="step-copy"><h4>${esc(t.title)}</h4><div class="step-meta">${stepContext(t)}</div></div>
-            <button class="btn text row-edit" data-edit-step="${t.id}">Edit</button>
+            <button class="icon-btn" data-edit-step="${t.id}" title="Edit step">✎</button>
           </div>`).join(""):`
             <div class="step-empty">
               <div class="empty-title">The road is clear.</div>
-              <p>Your story isn't empty. Plan a step for when you're ready to take it.</p>
-              <button class="btn" id="emptyAddStep">＋ Add a step</button>
+              <p>Plan a step for when you're ready to take it.</p>
             </div>`}
         </div>
         <div class="add-step-row">
@@ -784,12 +788,12 @@ function openStory(id){
     </div>
 
     <section class="panel journey">
-      <div class="section-title"><div><div class="kicker">The story so far</div><h2>Journey</h2></div><div class="count-label">${history.length} steps taken</div></div>
+      <div class="section-title"><h2>Journey</h2><div class="count-label">${history.length} step${history.length===1?"":"s"} taken</div></div>
       <div class="journey-track">
         ${history.length?history.map(a=>`<div class="journal-entry">
           <div class="journal-date">${humanDate(a.date)}</div>
           <div class="journal-note">${esc(a.note)}</div>
-          <div class="journal-meta">${a.taskId?"Step completed":"Activity logged"}<button class="btn text row-edit" data-edit-journey="${a.id}">Edit</button></div>
+          <div class="journal-meta">${a.taskId?"Step completed":"Activity logged"}<button class="icon-btn" data-edit-journey="${a.id}" title="Edit entry">✎</button></div>
         </div>`).join(""):`<div class="step-empty"><div class="empty-title">Your Journey begins with a step.</div><p>Complete a step or log something you did.</p></div>`}
       </div>
     </section>`;
@@ -801,7 +805,6 @@ function openStory(id){
   document.getElementById("addSubBtn").onclick=()=>openChapter(id);
   document.getElementById("quickStepAdd").onclick=()=>addQuickStep(id);
   document.getElementById("quickStepInput").addEventListener("keydown",e=>{if(e.key==="Enter")addQuickStep(id)});
-  const empty=document.getElementById("emptyAddStep"); if(empty)empty.onclick=()=>document.getElementById("quickStepInput").focus();
   document.querySelectorAll("[data-complete]").forEach(b=>b.onclick=()=>completeStep(b.dataset.complete));
   document.querySelectorAll("[data-edit-chapter]").forEach(b=>b.onclick=()=>openEditChapter(b.dataset.editChapter));
   document.querySelectorAll("[data-edit-goal]").forEach(b=>b.onclick=()=>openEditGoal(b.dataset.editGoal));

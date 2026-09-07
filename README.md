@@ -259,7 +259,9 @@ Further product expansion should wait until these foundations are reliable.
 
 - Main Story card is **blue**. (The North Star was retired; see Deliberately removed.)
 - "Plan the next step", not "Take a Step". The panel is a queue of upcoming steps, so the label shouldn't imply they're already done. The separate **＋ Log** action is for recording what actually happened.
-- Story detail sections render in hierarchy order: Chapters → Goals → Steps → Journey.
+- Story detail is three sections: **Direction** (goals nested under their chapter, with a trailing "Not in a chapter" block), **Next step**, and **Journey**. Chapters and Goals were separate panels; merging them made the chapter/goal relationship visible instead of implied.
+- Row actions are quiet **✎ icon buttons**, not "Edit" text. Six repeated "Edit" labels competed with the content for attention.
+- Section kickers were dropped. Three panels all labelled "DIRECTION" said nothing.
 - **Deleting a parent never destroys its children.** Deleting a Chapter leaves its Goals in the Story without a chapter; deleting a Goal leaves its Steps without a goal; deleting a Step leaves any Journey entry it produced intact, because the Journey records what actually happened. Only deleting a Story cascades, and it names exact counts in the confirmation and writes a pre-delete backup first.
 - Completed Goals and dormant Chapters stay **visible but quiet** on the Story page rather than disappearing, so there is always a route back to editing them. Never a red failure signal. The pickers and the featured goal use the filtered `goals()`/`subs()`; the Story page uses `allGoals()`/`allSubs()`.
 - Dates use **local** calendar time, never `toISOString()`, which is UTC and stamps the previous day after midnight in a positive-offset timezone.
