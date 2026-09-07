@@ -262,6 +262,16 @@ MVP prototype. The core Story → Chapter → Goal → Step → Journey loop is 
 
 Further product expansion should wait until these foundations are reliable.
 
+### Visual direction
+
+The look is editorial and printed: cream paper, warm black ink, serif for anything that speaks.
+
+- **Ink colours, not screen primaries.** Accents are `--olive`, `--terracotta`, `--gold`, `--blue`. Saturated primaries were tried (`--poster-*`) and removed: full-chroma colour is lit, the paper is reflected, and the two don't share a light source. They also compete with any photo or artwork a Journey entry might carry later, which should be the strongest colour on screen.
+- **`--signal-red` is reserved for destructive actions.** It appeared on every step trigger, which meant it signalled nothing and read as a row of demands. If red is on a routine control, that is a bug.
+- **Emphasis is the app's only editorial voice, and it belongs to the record, not the controls.** One loud thing per screen, and it should be a fact about what the person has actually done.
+- **Uppercase is for small labels only** (eyebrows, kickers, field labels). Headings and Story names are sentence case. Uppercasing something 35px tall is shouting.
+- **State presence, never absence.** No empty slots waiting to be filled, no cadence targets, no shortfall.
+
 ### Deliberately removed
 
 - **Points.** The variable point economy (+1/+2/+3/+5) has been removed entirely, from the UI and the data model. The Journey count ("3 steps taken") is now the only progress signal, because it is the only honest one.
