@@ -250,18 +250,25 @@ Further product expansion should wait until these foundations are reliable.
 
 - **Points.** The variable point economy (+1/+2/+3/+5) has been removed entirely, from the UI and the data model. The Journey count ("3 steps taken") is now the only progress signal, because it is the only honest one.
 - **Goal progress percentages.** Removed rather than left showing a permanent 0%. A real progress model is wanted, but it should be designed deliberately rather than faked.
+- **The North Star.** A display-only string that nothing else in the app read, and which became invisible in daily use. Removed from markup, state and CSS rather than hidden.
+- **The goal hero panel.** It repeated the leading goal that the Goals list showed directly below it. The leading goal is now just emphasised in the list.
 - **The yellow corner square on the Main Story card.** A rotated decorative shape that repeatedly escaped its parent on mobile. Removed outright rather than tuned again. Don't reintroduce offset or rotated decoration that depends on `overflow:hidden` to stay inside its card.
 - **Goal "target".** The field was free text that read as a measurable target it never was. Renamed to "detail" in v2, not deleted.
 
 ### Design decisions
 
-- Main Story card is **blue**; North Star is **red**. They were both red and read as the same object.
+- Main Story card is **blue**. (The North Star was retired; see Deliberately removed.)
 - "Plan the next step", not "Take a Step". The panel is a queue of upcoming steps, so the label shouldn't imply they're already done. The separate **＋ Log** action is for recording what actually happened.
-- Story detail sections render in hierarchy order: Chapters → Goal highlight → Goals → Steps → Journey.
+- Story detail sections render in hierarchy order: Chapters → Goals → Steps → Journey.
+- **Deleting a parent never destroys its children.** Deleting a Chapter leaves its Goals in the Story without a chapter; deleting a Goal leaves its Steps without a goal; deleting a Step leaves any Journey entry it produced intact, because the Journey records what actually happened. Only deleting a Story cascades, and it names exact counts in the confirmation and writes a pre-delete backup first.
+- Completed Goals and dormant Chapters stay **visible but quiet** on the Story page rather than disappearing, so there is always a route back to editing them. Never a red failure signal. The pickers and the featured goal use the filtered `goals()`/`subs()`; the Story page uses `allGoals()`/`allSubs()`.
+- Dates use **local** calendar time, never `toISOString()`, which is UTC and stamps the previous day after midnight in a positive-offset timezone.
 
 ### Known open items
 
-- No edit UI for Chapters or Goals. Both can only be set at creation, so a Goal's chapter can't be reassigned afterwards, and goals created before the chapter field exists stay chapterless
-- `chapter.status` (`active` / `dormant`) exists in the data and filters the list, but nothing in the UI can set it
-- Step lifecycle is one-way: a step can be completed but not reopened or deleted
+- Completed steps aren't listed anywhere, so a step can be completed but not reopened. The Journey records it either way
+- What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
+- The Story page is macro; there is no focused "what do I do now" view yet
+- Two old steps still carry a legacy `subQuestId: null`, and `completedAt` is date-only while `createdAt` is a full ISO timestamp. A schema v3 could tidy both
+- The stylesheet still has stacked override layers (`.story-card` x7, `.main-story` x4, three `@media(max-width:900px)` blocks). This is what caused the oversized-input bug; consolidation is pending
 - "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries.
