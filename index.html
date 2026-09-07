@@ -215,6 +215,11 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .step h4{margin:0;font-size:14px}
 .step-meta{font-size:11px;color:var(--muted);margin-top:3px}
 .step-anchor{font-size:11px;color:var(--ink);opacity:.72;margin-top:3px;font-style:italic}
+.view-toggle{display:flex;gap:8px;margin:0 0 18px}
+.view-tab{font-family:var(--sans);font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;padding:8px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink);cursor:pointer}
+.view-tab.on{background:var(--ink);color:var(--paper2)}
+.flat-steps{margin-bottom:22px}
+.step-story-tag{font-size:11px;color:var(--muted);margin-top:3px}
 .step-marks{font-size:11px;color:var(--muted);margin-top:3px}
 .practice-tag{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:var(--blue);margin-left:7px}
 .step.practice .step-trigger{border:2px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink)}
@@ -542,6 +547,9 @@ async function requestPersistence(){
 
 let state=JSON.parse(JSON.stringify(DEFAULT_STATE));
 let currentStory = null;
+/* Which home view is showing. Deliberately not persisted: the app should
+   open on Stories, not on a list of everything outstanding. */
+let homeView = "stories";
 
 async function loadState(){
   db=await openDB();
@@ -603,7 +611,15 @@ function onceSteps(id){return openTasks(id).filter(x=>x.mode!=="practice")}
 /* Derived from the Journey, never stored, so the number can only ever
    reflect something that actually happened. */
 function markCount(t){return state.activities.filter(a=>a.taskId===t.id).length}
-function marksLine(t){
+/* Every open one-off step across every active Story. Practices are
+   excluded on purpose: a list of practices not yet marked today is a
+   list of absences. Newest first, so what surfaces is momentum rather
+   than the stalest thing on the pile. */
+function flatSteps(activeIds){
+  return state.tasks
+    .filter(t=>t.status==="open"&&t.mode!=="practice"&&activeIds.has(t.questId))
+    .sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+}function marksLine(t){
   const n=markCount(t);
   if(!n)return "Ready when you are";
   if(t.lastMarkedAt===todayLocal())return `Marked today · ${n} in all`;
@@ -672,6 +688,47 @@ function renderHome(){
   const mainGoal=main?featuredGoal(main.id):null;
   const mainOpen=main?openTasks(main.id).slice(0,2):[];
   const others=list.filter(x=>x.id!==main?.id);
+  const toggle=`
+    <div class="view-toggle">
+      <button class="view-tab${homeView==="stories"?" on":""}" data-view="stories">Stories</button>
+      <button class="view-tab${homeView==="steps"?" on":""}" data-view="steps">Steps</button>
+    </div>`;
+
+  if(homeView==="steps"){
+    /* Every open one-off step, across every active Story. Practices are
+       excluded on purpose: a list of practices not yet marked today is a
+       list of absences, which is the one thing this app never shows.
+       Newest first, so what surfaces is momentum rather than the stalest
+       thing on the pile. */
+    const active=new Set(list.map(x=>x.id));
+    const all=flatSteps(active);
+    document.getElementById("main").innerHTML=`
+      <section class="home-hero">
+        <div>
+          <div class="eyebrow">Your story</div>
+          <h1 class="serif-title">What's in motion.</h1>
+        </div>
+      </section>
+      ${toggle}
+      ${all.length?`<section class="step-list flat-steps">
+        ${all.map(t=>{const s=q(t.questId);return `<div class="step">
+          <button class="step-trigger" data-complete="${t.id}" title="Mark as done">→</button>
+          <div class="step-copy">
+            <h4>${esc(t.title)}</h4>
+            ${s?`<div class="step-story-tag">${esc(s.icon)} ${esc(s.name)}</div>`:""}
+          </div>
+        </div>`}).join("")}
+      </section>`:`
+      <section class="step-empty" style="padding:34px 20px">
+        <div class="empty-title">Nothing queued.</div>
+        <p>Open a Story and add a step whenever one occurs to you.</p>
+      </section>`}`;
+    document.querySelectorAll("[data-complete]").forEach(el=>el.onclick=()=>completeStep(el.dataset.complete));
+    document.querySelectorAll("[data-view]").forEach(el=>el.onclick=()=>{homeView=el.dataset.view;renderHome()});
+    renderStorageStatus();
+    return;
+  }
+
   document.getElementById("main").innerHTML=`
     <section class="home-hero">
       <div>
@@ -680,6 +737,7 @@ function renderHome(){
         <p class="hero-note">Choose where to go next. Keep the direction visible. Let the steps add up to a life that feels like yours.</p>
       </div>
     </section>
+    ${toggle}
 
     ${main?`
     <div class="section-rule"><span>★ Main Story</span></div>
@@ -718,6 +776,7 @@ function renderHome(){
       }).join("")}
     </section>`;
   document.querySelectorAll("[data-card]").forEach(el=>el.onclick=()=>openStory(el.dataset.card));
+  document.querySelectorAll("[data-view]").forEach(el=>el.onclick=()=>{homeView=el.dataset.view;renderHome()});
   document.querySelectorAll("[data-open-main]").forEach(el=>el.onclick=()=>openStory(el.dataset.openMain));
   // Lives inside re-rendered markup, so it must be rebound on every render.
   const addBtn=document.getElementById("homeAddStoryBtn");
@@ -860,14 +919,14 @@ function markPractice(id){
   if(t.lastMarkedAt===today){toast("Already marked today");return}
   t.lastMarkedAt=today;
   state.activities.push({id:"a-"+Date.now(),questId:t.questId,taskId:t.id,kind:"practice",note:t.title,date:today});
-  save(); showStamp("PRACTICE MARKED"); openStory(t.questId);
+  save(); showStamp("PRACTICE MARKED"); currentStory?openStory(currentStory):renderHome();
 }
 function completeStep(id){
   const t=state.tasks.find(x=>x.id===id);if(!t||t.status==="complete")return;
   if(t.mode==="practice")return markPractice(id);
   t.status="complete";t.completedAt=todayLocal();
   state.activities.push({id:"a-"+Date.now(),questId:t.questId,taskId:t.id,note:t.title,date:t.completedAt});
-  save(); showStamp(); openStory(t.questId);
+  save(); showStamp(); currentStory?openStory(currentStory):renderHome();
 }
 function addQuickStep(id){
   const input=document.getElementById("quickStepInput");

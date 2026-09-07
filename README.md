@@ -272,6 +272,16 @@ The look is editorial and printed: cream paper, warm black ink, serif for anythi
 - **Uppercase is for small labels only** (eyebrows, kickers, field labels). Headings and Story names are sentence case. Uppercasing something 35px tall is shouting.
 - **State presence, never absence.** No empty slots waiting to be filled, no cadence targets, no shortfall.
 
+### Home views
+
+Home has two views behind a toggle: **Stories** (the default) and **Steps**.
+
+Steps is a flat list of every open one-off step across every active Story, newest first, each tagged with the Story it belongs to. No grouping and no counts, so it reads as what's in motion rather than as a backlog.
+
+- **Practices are excluded.** A list of practices not yet marked today is a list of absences, and the app does not show absence.
+- **Newest first**, because oldest-first surfaces the stalest thing, which is quietly accusing. There are no due dates and there will not be any.
+- **The toggle is not persisted.** The app opens on Stories every launch, not on a list of everything outstanding.
+
 ### Deliberately removed
 
 - **Points.** The variable point economy (+1/+2/+3/+5) has been removed entirely, from the UI and the data model. The Journey count ("3 steps taken") is now the only progress signal, because it is the only honest one.
