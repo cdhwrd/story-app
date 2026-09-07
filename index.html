@@ -86,7 +86,6 @@ a{text-decoration:none;color:inherit}
 }
 .btn:hover{background:#f5efe4}
 .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
-.btn.ink-outline{background:transparent;border-color:var(--ink)}
 .btn.text{background:transparent;border-color:transparent;color:var(--muted)}
 .layout{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 70px);min-width:0}
 aside{
@@ -207,7 +206,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 }
 .step:first-child{border-top:0;padding-top:0}
 .step-trigger{
-  width:29px;height:29px;border-radius:50%;border:1px solid #bcae98;background:#f8f2e7;
+  width:29px;height:29px;border-radius:2px;border:2px solid var(--ink);background:var(--paper2);
   display:grid;place-items:center;color:var(--ink);font-weight:900;
 }
 .step-trigger:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -222,7 +221,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .step-story-tag{font-size:11px;color:var(--muted);margin-top:3px}
 .step-marks{font-size:11px;color:var(--muted);margin-top:3px}
 .practice-tag{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:var(--blue);margin-left:7px}
-.step.practice .step-trigger{border:2px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink)}
 .step.practice .step-trigger:hover{background:var(--olive-soft);color:var(--ink)}
 .step.practice .step-trigger.marked{background:var(--olive);color:#fff}
 .step-empty{
@@ -288,7 +286,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 }
 .step-stamp.show{opacity:1;transform:translate(-50%,0) rotate(-2deg) scale(1)}
 .step-stamp strong{display:block;font-family:var(--serif);font-size:20px;line-height:1}
-.step-stamp span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.13em;font-weight:900;margin-top:4px}
 
 @media(max-width:900px){
   .topbar{height:auto;min-height:64px;padding:10px 13px}
@@ -310,9 +307,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   .panel{padding:18px}
   .story-head{gap:11px}
   .story-head-icon{width:51px;height:51px;font-size:26px}
-  .now-actions{grid-template-columns:1fr}
-  .add-step-row{flex-direction:column}
-  .add-step-row .btn{width:100%}
 }
 
 /* Editorial explorer base: paper texture, offset shadows, poster accents */
@@ -365,8 +359,6 @@ body{
 .panel{border:2px solid var(--ink);border-top-width:4px;box-shadow:4px 5px 0 rgba(30,27,23,.09)}
 
 .step{border-color:#c9bda9}
-.step-trigger{border:2px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink)}
-.step-trigger:hover{background:var(--ink);color:#fff}
 .add-step-row{border-top:1px solid #c9bda9;padding-top:12px}
 .add-step-row input{border:2px solid var(--ink);border-radius:2px}
 .journey{background:#f7f1e5;border-top-color:var(--blue)}
@@ -626,7 +618,21 @@ function flatSteps(activeIds){
   return `${n} mark${n===1?"":"s"} · last ${humanDate(t.lastMarkedAt||todayLocal())}`;
 }
 function acts(id){return state.activities.filter(x=>x.questId===id).sort((a,b)=>b.date.localeCompare(a.date))}
-function latest(id){return acts(id)[0]?.date||""}
+function latest(id){
+  let d="";
+  for(const a of state.activities)if(a.questId===id&&a.date>d)d=a.date;
+  return d;
+}
+/* renderNav and renderHome both need this list, and renderHome calls
+   renderNav, so it was being built twice per render. One definition. */
+function activeStories(){
+  const last={};
+  for(const a of state.activities){
+    if(!last[a.questId]||a.date>last[a.questId])last[a.questId]=a.date;
+  }
+  return [...state.quests].filter(x=>x.status==="active")
+    .sort((a,b)=>attRank[a.attention]-attRank[b.attention]||(last[b.id]||"").localeCompare(last[a.id]||""));
+}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 let toastTimer=null;
 function toast(msg){
@@ -653,7 +659,7 @@ function humanDate(d){
 }
 function renderNav(){
   const nav=document.getElementById("storyNav");
-  const list=[...state.quests].filter(x=>x.status==="active").sort((a,b)=>attRank[a.attention]-attRank[b.attention]||(latest(b.id)||"").localeCompare(latest(a.id)||""));
+  const list=activeStories();
   nav.innerHTML=list.map(x=>`<button class="${currentStory===x.id?"active":""}" data-nav="${x.id}">
     <span class="nav-icon">${esc(x.icon)}</span><span class="nav-name">${esc(x.name)}</span>${state.mainStoryId===x.id?`<span class="nav-main">★</span>`:""}
   </button>`).join("");
@@ -662,7 +668,7 @@ function renderNav(){
 function featuredGoal(id){return goals(id)[0]||state.goals.find(x=>x.questId===id)||null}
 function renderHome(){
   currentStory=null;renderNav();
-  const list=[...state.quests].filter(x=>x.status==="active").sort((a,b)=>attRank[a.attention]-attRank[b.attention]||(latest(b.id)||"").localeCompare(latest(a.id)||""));
+  const list=activeStories();
 
   if(list.length===0){
     document.getElementById("main").innerHTML=`
