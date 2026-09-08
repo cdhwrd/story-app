@@ -59,14 +59,17 @@ function v2State() {
 }
 
 module.exports = async function (t) {
-  const { migrate, MIGRATIONS } = load(["migrate", "MIGRATIONS"]);
-
-  /* migrate() writes a pre-change backup through the IndexedDB layer.
-     The seatbelt is asserted below; here it just must not touch a real
-     database. */
+  /* Set up before loading: DEFAULT_STATE reads SCHEMA_VERSION as it is
+     evaluated, and migrate() writes a pre-change backup through the
+     IndexedDB layer. The backup is asserted below; here it just must
+     not touch a real database. The version comes from the file rather
+     than a literal, so the suite cannot drift from the source. */
   let backups = [];
   global.writeBackup = async (snapshot, reason) => { backups.push({ snapshot, reason }); };
-  global.SCHEMA_VERSION = 3;
+  global.SCHEMA_VERSION = schemaVersionInSource();
+
+  const { migrate, MIGRATIONS, withDefaultLists, DEFAULT_STATE } =
+    load(["migrate", "MIGRATIONS", "withDefaultLists", "DEFAULT_STATE"]);
 
   const v3 = MIGRATIONS[3];
 
@@ -221,7 +224,7 @@ module.exports = async function (t) {
      fixed the file never gets to run. */
   t.section("an export made before v3 still restores");
   const { validateImport, isCurrentShape, restoreSummary } =
-    load(["validateImport", "isCurrentShape", "restoreSummary", "STATE_LISTS", "PRE_V3_LISTS"]);
+    load(["validateImport", "isCurrentShape", "restoreSummary", "REQUIRED_LISTS", "PRE_V3_LISTS"]);
 
   t.ok("a pre-v3 export passes validation", validateImport(v2State()) === null);
   t.ok("a v3 export passes validation", validateImport(once) === null);
@@ -251,6 +254,46 @@ module.exports = async function (t) {
     "an empty export does not throw",
     restoreSummary({ stories: [], journey: [] }) === "0 Stories, 0 Journey entries"
   );
+
+  /* --- room for a list that does not exist yet -------------------------- */
+  /* Events are next, and adding a list should not cost a migration or
+     break older files. DEFAULT_STATE is the runtime shape and is
+     backfilled; REQUIRED_LISTS is what makes a file a Story export and
+     must not grow, or every export written before the new list would be
+     rejected. */
+  t.section("a list added later costs no migration");
+  const future = { ...DEFAULT_STATE, events: undefined };
+  delete future.events;
+  const backfilled = withDefaultLists({ schemaVersion: 3, stories: [{ id: "q1" }] });
+  t.ok("missing lists arrive as empty arrays", Array.isArray(backfilled.journey) && backfilled.journey.length === 0);
+  t.ok("existing data is left alone", backfilled.stories.length === 1);
+  t.ok("it is a no-op on a complete state", same(withDefaultLists(clone(once)), once));
+
+  /* Simulating the real thing: pretend DEFAULT_STATE has grown. */
+  const grown = { ...DEFAULT_STATE, events: [] };
+  const filled = (s) => {
+    for (const [k, v] of Object.entries(grown)) if (Array.isArray(v) && !Array.isArray(s[k])) s[k] = [];
+    return s;
+  };
+  const oldStateAtCurrentVersion = filled({ schemaVersion: 3, stories: [], chapters: [], goals: [], steps: [], journey: [] });
+  t.ok("a state already at the current version still gains the new list", Array.isArray(oldStateAtCurrentVersion.events));
+
+  t.ok(
+    "REQUIRED_LISTS stays at the five that define an export",
+    JSON.stringify(load(["REQUIRED_LISTS"]).REQUIRED_LISTS) ===
+      JSON.stringify(["stories", "chapters", "goals", "steps", "journey"])
+  );
+  t.ok(
+    "so a file without a later list still validates",
+    validateImport({ stories: [], chapters: [], goals: [], steps: [], journey: [] }) === null
+  );
+
+  /* migrate() must backfill even when there is no version work to do,
+     or a state already at the current version never gains the list. */
+  backups = [];
+  const current2 = await migrate({ schemaVersion: 3, stories: [] });
+  t.ok("migrate backfills an up-to-date state", Array.isArray(current2.journey));
+  t.ok("and still writes no backup for it", backups.length === 0);
 
   /* --- activation ------------------------------------------------------ */
   t.section("v3 is live");

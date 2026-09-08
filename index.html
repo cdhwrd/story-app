@@ -553,15 +553,27 @@ const MIGRATIONS={
     return s;
   }
 };
+/* A list added in a later version is missing from every state written
+   before it existed. Backfilling from DEFAULT_STATE means introducing
+   one is a single line there, with no migration and no risk to older
+   exports. Non-destructive, so it runs on every load, including states
+   already at the current version. */
+function withDefaultLists(s){
+  for(const [k,v] of Object.entries(DEFAULT_STATE)){
+    if(Array.isArray(v)&&!Array.isArray(s[k]))s[k]=[];
+  }
+  return s;
+}
 async function migrate(s){
   const from=Number(s.schemaVersion||0);
-  if(from>=SCHEMA_VERSION)return s;
-  await writeBackup(JSON.parse(JSON.stringify(s)),`pre-migration v${from}`);
-  for(let v=from+1;v<=SCHEMA_VERSION;v++){
-    if(MIGRATIONS[v])s=MIGRATIONS[v](s);
+  if(from<SCHEMA_VERSION){
+    await writeBackup(JSON.parse(JSON.stringify(s)),`pre-migration v${from}`);
+    for(let v=from+1;v<=SCHEMA_VERSION;v++){
+      if(MIGRATIONS[v])s=MIGRATIONS[v](s);
+    }
+    s.schemaVersion=SCHEMA_VERSION;
   }
-  s.schemaVersion=SCHEMA_VERSION;
-  return s;
+  return withDefaultLists(s);
 }
 
 /* Ask the browser not to evict us. Without this, IndexedDB is just as
@@ -1365,17 +1377,21 @@ function openAddStory(){
   };
 }
 /* ===== SECTION: backup ===== */
-const STATE_LISTS=["stories","chapters","goals","steps","journey"];
+/* What makes a file a Story export. This list does NOT grow when a new
+   list is added to the state: requiring it here would reject every
+   export written before that list existed. New lists are backfilled by
+   withDefaultLists() instead. */
+const REQUIRED_LISTS=["stories","chapters","goals","steps","journey"];
 /* Exports made before v3 carry the old key names. They are still the
    user's data and must still restore, so the check runs before the
    rename happens rather than assuming it already has. */
 const PRE_V3_LISTS={stories:"quests",chapters:"subs",steps:"tasks",journey:"activities"};
 function isCurrentShape(obj){
-  return !!obj&&typeof obj==="object"&&STATE_LISTS.every(k=>Array.isArray(obj[k]));
+  return !!obj&&typeof obj==="object"&&REQUIRED_LISTS.every(k=>Array.isArray(obj[k]));
 }
 function validateImport(obj){
   if(!obj||typeof obj!=="object")return "That file isn't a Story export.";
-  for(const k of STATE_LISTS){
+  for(const k of REQUIRED_LISTS){
     const old=PRE_V3_LISTS[k];
     if(!Array.isArray(obj[k])&&!(old&&Array.isArray(obj[old])))return `That file is missing its ${k} list.`;
   }

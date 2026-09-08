@@ -161,6 +161,8 @@ An ordered runner brings any stored state up to `SCHEMA_VERSION`, writing a pre-
 - **v2** renames `goal.target` to `goal.detail`, carrying existing text across rather than dropping it
 - **v3** renames the state keys to the UI's words: `quests`→`stories`, `subs`→`chapters`, `tasks`→`steps`, `activities`→`journey`, `questId`→`storyId`, `subQuestId`→`chapterId`, `taskId`→`stepId`. It also drops the vestigial chapter field some older steps carry rather than renaming it, since a Step reaches its Chapter through its Goal and `step.chapterId` would look exactly like the live field on a Goal
 
+**Adding a list costs no migration.** `withDefaultLists()` backfills any array in `DEFAULT_STATE` that a stored state lacks, so introducing `events` is one line there. `REQUIRED_LISTS`, which defines what makes a file a Story export, deliberately does not grow with it: requiring a new list there would reject every export written before it existed.
+
 Rules for writing the next one:
 
 - **Copy on presence, not truthiness.** `stepId` and `chapterId` are legitimately `null`, for a Journey entry typed by hand and a Goal filed under no Chapter. A truthiness test drops the key and changes what the record means.
@@ -279,7 +281,7 @@ MVP prototype in daily use. The core Story → Chapter → Goal → Step → Jou
 
 Product, roughly in order:
 
-1. **Events and the timeline.** Events are objective things on a date (dentist, a birthday), separate from Steps and with no due-date semantics. The timeline is one spine scrolled both ways: events ahead, Journey behind. Optional `storyId`, since not everything belongs to a Story.
+1. **Events and the timeline.** Groundwork is in place: modals build from shared blocks, and a new state list needs only a line in `DEFAULT_STATE`. Events are objective things on a date (dentist, a birthday), separate from Steps and with no due-date semantics. The timeline is one spine scrolled both ways: events ahead, Journey behind. Optional `storyId`, since not everything belongs to a Story.
 2. **`.ics` export.** One event at a time, using the event id as `UID` so re-exporting updates rather than duplicating. One-way and a copy; no OAuth, no sync.
 3. **Deleted Stories keep their Journey entries.** Blocked until the timeline exists, because every current view finds entries by Story, so preserved entries would be invisible. Denormalise the Story name onto them as text.
 4. **A derived line on the Story page**, stating something true about the record ("part of your life since March, 14 marks"). Needs a Story start date; `createdAt` exists on newer Stories, older ones may need backfilling.
