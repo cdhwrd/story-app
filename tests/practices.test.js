@@ -17,7 +17,8 @@ module.exports = function (t) {
 
   loadGlobal([
     "todayLocal", "humanDate", "tasks", "openTasks", "practices",
-    "onceSteps", "markCount", "plural", "marksLine", "markPractice", "completeStep"
+    "onceSteps", "markCount", "plural", "marksLine", "markPractice", "completeStep",
+    "newId", "lastMarkFor", "uncompleteEntry"
   ]);
 
   function reset() {
@@ -43,16 +44,17 @@ module.exports = function (t) {
   t.ok("no completedAt is set", state.tasks[0].completedAt === undefined);
   t.ok("shows the practice stamp", stamps[0] === "PRACTICE MARKED");
 
-  t.section("one mark per day");
+  t.section("marking more than once a day is allowed");
   markPractice("t1");
-  t.ok("no duplicate entry", state.activities.length === 1);
-  t.ok("count stays at one", markCount(state.tasks[0]) === 1);
-  t.ok("told plainly, not scolded", toasts[0] === "Already marked today");
+  t.ok("a second mark is recorded", state.activities.length === 2);
+  t.ok("count reaches two", markCount(state.tasks[0]) === 2);
+  t.ok("nothing is refused", !toasts.includes("Already marked today"));
+  t.ok("both entries have distinct ids", state.activities[0].id !== state.activities[1].id);
 
   t.section("marking again on a later day");
   state.tasks[0].lastMarkedAt = "2020-01-01";
   markPractice("t1");
-  t.ok("count reaches two", markCount(state.tasks[0]) === 2);
+  t.ok("count reaches three", markCount(state.tasks[0]) === 3);
   t.ok("lastMarkedAt moves to today", state.tasks[0].lastMarkedAt === today);
 
   t.section("a practice cannot be completed");

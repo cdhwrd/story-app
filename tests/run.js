@@ -51,23 +51,27 @@ const files = fs
   .filter((f) => f.endsWith(".test.js"))
   .sort();
 
-for (const f of files) {
-  console.log("\n" + f.replace(".test.js", ""));
-  try {
-    require(path.join(__dirname, f))(t);
-  } catch (e) {
-    /* Usually means a function was renamed or removed in index.html and
-       the harness can no longer find it. Report it and keep going, so
-       one broken file does not hide the state of the others. */
-    ok(`${f} threw: ${e.message}`, false);
+/* Test modules may be async (anything touching applyDelete is, because a
+   Story deletion writes a backup first), so each one is awaited. */
+(async () => {
+  for (const f of files) {
+    console.log("\n" + f.replace(".test.js", ""));
+    try {
+      await require(path.join(__dirname, f))(t);
+    } catch (e) {
+      /* Usually means a function was renamed or removed in index.html and
+         the harness can no longer find it. Report it and keep going, so
+         one broken file does not hide the state of the others. */
+      ok(`${f} threw: ${e.message}`, false);
+    }
   }
-}
 
-console.log(
-  `\n${passed} passed, ${failed} failed, across ${files.length} files`
-);
-if (failed) {
-  console.log("\nFailures:");
-  for (const f of failures) console.log("  " + f);
-}
-process.exit(failed ? 1 : 0);
+  console.log(
+    `\n${passed} passed, ${failed} failed, across ${files.length} files`
+  );
+  if (failed) {
+    console.log("\nFailures:");
+    for (const f of failures) console.log("  " + f);
+  }
+  process.exit(failed ? 1 : 0);
+})();

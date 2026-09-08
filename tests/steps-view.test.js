@@ -17,7 +17,7 @@ module.exports = function (t) {
   loadGlobal([
     "todayLocal", "humanDate", "tasks", "openTasks", "practices",
     "onceSteps", "markCount", "flatSteps", "marksLine", "markPractice",
-    "completeStep"
+    "completeStep", "newId"
   ]);
 
   function reset() {

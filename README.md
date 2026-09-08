@@ -114,12 +114,29 @@ They share one record deliberately. A Practice is not a separate entity, it is a
 
 Rules that hold the mechanic together:
 
-- **One mark per day.** A second tap on the same day is refused with a neutral message, so the count records days practised and cannot be inflated.
+- **Mark it as often as you do it.** There is no per-day limit. The count records times, not days, so walking twice on a Tuesday is two marks.
 - **The count is derived**, from Journey entries carrying that `taskId`. It is never stored, so it can only ever reflect something that actually happened.
+- **Nothing is one-way.** Every Journey entry that came from a step or a practice carries a ticked checkbox. Unticking it removes the entry, and either puts the step back on the list or removes that single mark. `lastMarkedAt` is recomputed from surviving entries rather than cleared.
 - **Presence only, never absence.** The UI shows marks made. It has no cadence target, no denominator, and therefore no shortfall. An unmarked day produces no entry and no indicator. There is deliberately no way to express "3x a week", because a target creates a deficit.
 - `anchor` is the implementation intention ("after morning coffee"), prompted but never required.
 
 A Step links to its Chapter *transitively*, through its Goal. Steps have no direct chapter field. There used to be an unused `task.subQuestId` (always written as `null`, never set by any UI); it was removed when the hierarchy was settled.
+
+### Deleting things
+
+All five delete paths run through one rules table, `DELETE_RULES`, with `deleteImpact()`, `deleteMessage()` and `applyDelete()` on top of it.
+
+| Deleting | What happens |
+|---|---|
+| Chapter | Its goals are **unfiled**, not deleted |
+| Goal | Its steps are **unfiled**, not deleted |
+| Step | Removed. Its Journey entries stay |
+| Journey entry | Just that entry |
+| Story | Everything in it, after writing a backup |
+
+The confirmation sentence is generated from the same impact the deletion uses, so the promise and the behaviour cannot drift apart. Before this, Step deletion promised Journey entries would survive while Story deletion silently destroyed them.
+
+Still to change, once a timeline view exists: a deleted Story should keep its Journey entries rather than destroying them. They are held back only because every current view finds entries by Story, so preserved entries would be invisible.
 
 ### Migrations
 
@@ -344,7 +361,7 @@ Steps is a flat list of every open one-off step across every active Story, newes
 - A Practice can only be created by adding a Step and converting it in the edit modal. Quick-add always produces a one-off, deliberately, to keep that row a single field
 - Converting an existing Step to a Practice brings the record forward but not its history: earlier one-off completions of the same activity stay as separate records and don't gather into the mark count
 - Practices appear in the home page "Next steps" teaser alongside one-off steps, undifferentiated
-- Completed steps aren't listed anywhere, so a step can be completed but not reopened. The Journey records it either way
+- Completed steps aren't listed anywhere outside the Journey, though they can now be reopened from there. The Journey records it either way
 - What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
 - The Story page is macro; there is no focused "what do I do now" view yet
 - Two old steps still carry a legacy `subQuestId: null`, and `completedAt` is date-only while `createdAt` is a full ISO timestamp. A schema v3 could tidy both
