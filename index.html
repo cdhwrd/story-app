@@ -1172,102 +1172,109 @@ function confirmDelete(title,warning,onConfirm){
   document.getElementById("confirmDeleteBtn").onclick=onConfirm;
 }
 /* ===== SECTION: modals ===== */
-function openEditChapter(id){
-  const c=state.chapters.find(x=>x.id===id); if(!c)return;
-  showModal("Edit Chapter",`
-    <div class="field"><label>Chapter</label><input id="chapterTitleEdit" value="${esc(c.title)}"></div>
-    <div class="field"><label>Status</label><select id="chapterStatus">${["active","dormant"].map(v=>`<option value="${v}" ${c.status===v?"selected":""}>${v}</option>`).join("")}</select></div>
-    <div class="modal-footer"><button class="btn text danger" id="deleteChapter">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveChapterEdit">Save</button></div>`);
-  document.getElementById("saveChapterEdit").onclick=()=>{
-    const t=document.getElementById("chapterTitleEdit").value.trim();
-    if(!t){toast("Give the chapter a title");return}
-    c.title=t;c.status=document.getElementById("chapterStatus").value;
-    save();closeModal();openStory(c.storyId);toast("Chapter updated");
-  };
-  document.getElementById("deleteChapter").onclick=()=>{
-    confirmDelete("Delete Chapter",deleteMessage("chapter",id),async()=>{
-      await applyDelete("chapter",id);
-      save();closeModal();openStory(c.storyId);toast("Chapter deleted");
+/* Modal building blocks. Nine modals were nine copies of the same
+   markup; a modal is now a list of fields plus a footer, so adding one
+   is a short function rather than another copy. Pure strings, tested. */
+function field(label,inner){return `<div class="field"><label>${esc(label)}</label>${inner}</div>`}
+function textField(id,label,value="",placeholder=""){
+  return field(label,`<input id="${id}"${value?` value="${esc(value)}"`:""}${placeholder?` placeholder="${esc(placeholder)}"`:""}>`);
+}
+function dateField(id,label,value){return field(label,`<input id="${id}" type="date" value="${esc(value)}">`)}
+/* options is [value, text] pairs, so no caller hand-writes an <option>. */
+function selectField(id,label,options,selected){
+  return field(label,`<select id="${id}">${options.map(([v,text])=>`<option value="${esc(v)}"${v===selected?" selected":""}>${esc(text)}</option>`).join("")}</select>`);
+}
+function modalFooter(saveId,saveLabel,deleteId){
+  return `<div class="modal-footer">${deleteId?`<button class="btn text danger" id="${deleteId}">Delete</button>`:""}<button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="${saveId}">${esc(saveLabel)}</button></div>`;
+}
+/* Reading a field, and finishing: the two things every modal does. */
+function val(id){return (document.getElementById(id).value||"").trim()}
+function saveAndReturn(storyId,message){save();closeModal();openStory(storyId);toast(message)}
+/* The cascade stays in DELETE_RULES. This is only the wiring, which was
+   identical five times over. */
+function wireDelete(buttonId,kind,id,after){
+  const label=DELETE_RULES[kind].label;
+  document.getElementById(buttonId).onclick=()=>{
+    confirmDelete(`Delete ${label}`,deleteMessage(kind,id),async()=>{
+      await applyDelete(kind,id);
+      save();closeModal();after();toast(`${label} deleted`);
     });
   };
+}
+function openEditChapter(id){
+  const c=state.chapters.find(x=>x.id===id); if(!c)return;
+  showModal("Edit Chapter",
+    textField("chapterTitleEdit","Chapter",c.title)+
+    selectField("chapterStatus","Status",[["active","active"],["dormant","dormant"]],c.status)+
+    modalFooter("saveChapterEdit","Save","deleteChapter"));
+  document.getElementById("saveChapterEdit").onclick=()=>{
+    const t=val("chapterTitleEdit");
+    if(!t){toast("Give the chapter a title");return}
+    c.title=t;c.status=val("chapterStatus");
+    saveAndReturn(c.storyId,"Chapter updated");
+  };
+  wireDelete("deleteChapter","chapter",id,()=>openStory(c.storyId));
 }
 function openEditGoal(id){
   const g=state.goals.find(x=>x.id===id); if(!g)return;
-  const chapters=chaptersIn(g.storyId);
-  showModal("Edit Goal",`
-    <div class="field"><label>Goal</label><input id="goalTitleEdit" value="${esc(g.title)}"></div>
-    <div class="field"><label>Detail</label><input id="goalDetailEdit" value="${esc(g.detail||"")}"></div>
-    <div class="field"><label>Chapter</label><select id="goalChapterEdit"><option value="">No chapter</option>${chapters.map(c=>`<option value="${c.id}" ${g.chapterId===c.id?"selected":""}>${esc(c.title)}</option>`).join("")}</select></div>
-    <div class="field"><label>Status</label><select id="goalStatus">${["open","complete"].map(v=>`<option value="${v}" ${g.status===v?"selected":""}>${v}</option>`).join("")}</select></div>
-    <div class="modal-footer"><button class="btn text danger" id="deleteGoal">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveGoalEdit">Save</button></div>`);
+  showModal("Edit Goal",
+    textField("goalTitleEdit","Goal",g.title)+
+    textField("goalDetailEdit","Detail",g.detail||"")+
+    selectField("goalChapterEdit","Chapter",[["","No chapter"],...chaptersIn(g.storyId).map(c=>[c.id,c.title])],g.chapterId||"")+
+    selectField("goalStatus","Status",[["open","open"],["complete","complete"]],g.status)+
+    modalFooter("saveGoalEdit","Save","deleteGoal"));
   document.getElementById("saveGoalEdit").onclick=()=>{
-    const t=document.getElementById("goalTitleEdit").value.trim();
+    const t=val("goalTitleEdit");
     if(!t){toast("Give the goal a title");return}
     g.title=t;
-    g.detail=document.getElementById("goalDetailEdit").value.trim();
-    g.chapterId=document.getElementById("goalChapterEdit").value||null;
-    g.status=document.getElementById("goalStatus").value;
-    save();closeModal();openStory(g.storyId);toast("Goal updated");
+    g.detail=val("goalDetailEdit");
+    g.chapterId=val("goalChapterEdit")||null;
+    g.status=val("goalStatus");
+    saveAndReturn(g.storyId,"Goal updated");
   };
-  document.getElementById("deleteGoal").onclick=()=>{
-    confirmDelete("Delete Goal",deleteMessage("goal",id),async()=>{
-      await applyDelete("goal",id);
-      save();closeModal();openStory(g.storyId);toast("Goal deleted");
-    });
-  };
+  wireDelete("deleteGoal","goal",id,()=>openStory(g.storyId));
 }
 function openEditStep(id){
   const t=state.steps.find(x=>x.id===id); if(!t)return;
-  const gs=goals(t.storyId);
   const isPractice=t.mode==="practice";
-  showModal(isPractice?"Edit Practice":"Edit Step",`
-    <div class="field"><label>Step</label><input id="stepTitleEdit" value="${esc(t.title)}"></div>
-    <div class="field"><label>Kind</label><select id="stepModeEdit">
-      <option value="once" ${isPractice?"":"selected"}>One-off step, it finishes when you do it</option>
-      <option value="practice" ${isPractice?"selected":""}>Practice, something you return to</option>
-    </select></div>
-    <div class="field" id="stepAnchorField" style="${isPractice?"":"display:none"}"><label>Anchor</label><input id="stepAnchorEdit" value="${esc(t.anchor||"")}" placeholder="When or after what? e.g. after morning coffee"></div>
-    <div class="field"><label>Goal</label><select id="stepGoalEdit"><option value="">No goal</option>${gs.map(g=>`<option value="${g.id}" ${t.goalId===g.id?"selected":""}>${esc(g.title)}</option>`).join("")}</select></div>
-    <div class="modal-footer"><button class="btn text danger" id="deleteStep">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveStepEdit">Save</button></div>`);
+  showModal(isPractice?"Edit Practice":"Edit Step",
+    textField("stepTitleEdit","Step",t.title)+
+    selectField("stepModeEdit","Kind",[
+      ["once","One-off step, it finishes when you do it"],
+      ["practice","Practice, something you return to"]
+    ],isPractice?"practice":"once")+
+    `<div class="field" id="stepAnchorField" style="${isPractice?"":"display:none"}"><label>Anchor</label><input id="stepAnchorEdit" value="${esc(t.anchor||"")}" placeholder="When or after what? e.g. after morning coffee"></div>`+
+    selectField("stepGoalEdit","Goal",[["","No goal"],...goals(t.storyId).map(g=>[g.id,g.title])],t.goalId||"")+
+    modalFooter("saveStepEdit","Save","deleteStep"));
   const modeSel=document.getElementById("stepModeEdit");
   modeSel.onchange=()=>{
     document.getElementById("stepAnchorField").style.display=modeSel.value==="practice"?"":"none";
   };
   document.getElementById("saveStepEdit").onclick=()=>{
-    const v=document.getElementById("stepTitleEdit").value.trim();
+    const v=val("stepTitleEdit");
     if(!v){toast("Give the step a title");return}
     const mode=modeSel.value;
-    t.title=v;t.goalId=document.getElementById("stepGoalEdit").value||null;
+    t.title=v;t.goalId=val("stepGoalEdit")||null;
     t.mode=mode;
-    if(mode==="practice"){t.anchor=document.getElementById("stepAnchorEdit").value.trim()||null;t.status="open"}
+    if(mode==="practice"){t.anchor=val("stepAnchorEdit")||null;t.status="open"}
     else{delete t.anchor}
-    save();closeModal();openStory(t.storyId);toast(mode==="practice"?"Practice updated":"Step updated");
+    saveAndReturn(t.storyId,mode==="practice"?"Practice updated":"Step updated");
   };
-  document.getElementById("deleteStep").onclick=()=>{
-    confirmDelete("Delete Step",deleteMessage("step",id),async()=>{
-      await applyDelete("step",id);
-      save();closeModal();openStory(t.storyId);toast("Step deleted");
-    });
-  };
+  wireDelete("deleteStep","step",id,()=>openStory(t.storyId));
 }
 function openEditJourney(id){
   const a=state.journey.find(x=>x.id===id); if(!a)return;
-  showModal("Edit Journey entry",`
-    <div class="field"><label>What happened</label><input id="journeyNoteEdit" value="${esc(a.note)}"></div>
-    <div class="field"><label>Date</label><input id="journeyDateEdit" type="date" value="${esc(a.date)}"></div>
-    <div class="modal-footer"><button class="btn text danger" id="deleteJourney">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveJourneyEdit">Save</button></div>`);
+  showModal("Edit Journey entry",
+    textField("journeyNoteEdit","What happened",a.note)+
+    dateField("journeyDateEdit","Date",a.date)+
+    modalFooter("saveJourneyEdit","Save","deleteJourney"));
   document.getElementById("saveJourneyEdit").onclick=()=>{
-    const n=document.getElementById("journeyNoteEdit").value.trim();
+    const n=val("journeyNoteEdit");
     if(!n){toast("Say what happened");return}
-    a.note=n;a.date=document.getElementById("journeyDateEdit").value||a.date;
-    save();closeModal();openStory(a.storyId);toast("Journey entry updated");
+    a.note=n;a.date=val("journeyDateEdit")||a.date;
+    saveAndReturn(a.storyId,"Journey entry updated");
   };
-  document.getElementById("deleteJourney").onclick=()=>{
-    confirmDelete("Delete Journey entry",deleteMessage("entry",id),async()=>{
-      await applyDelete("entry",id);
-      save();closeModal();openStory(a.storyId);toast("Journey entry deleted");
-    });
-  };
+  wireDelete("deleteJourney","entry",id,()=>openStory(a.storyId));
 }
 async function deleteStory(id){
   if(!storyById(id))return;
@@ -1286,75 +1293,75 @@ function closeModal(){document.getElementById("modal").classList.remove("open")}
 document.getElementById("modalClose").onclick=closeModal;
 document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
 function openGoal(id){
-  const chapters=chaptersIn(id);
-  showModal("Add Goal",`
-    <div class="field"><label>Goal</label><input id="goalTitle" placeholder="What do you want this Story to become?"></div>
-    <div class="field"><label>Detail</label><input id="goalDetail" placeholder="Optional, any detail worth noting"></div>
-    <div class="field"><label>Chapter</label><select id="goalChapter"><option value="">No chapter</option>${chapters.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join("")}</select></div>
-    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveGoal">Add goal</button></div>`);
+  showModal("Add Goal",
+    textField("goalTitle","Goal","","What do you want this Story to become?")+
+    textField("goalDetail","Detail","","Optional, any detail worth noting")+
+    selectField("goalChapter","Chapter",[["","No chapter"],...chaptersIn(id).map(c=>[c.id,c.title])],"")+
+    modalFooter("saveGoal","Add goal"));
   document.getElementById("saveGoal").onclick=()=>{
-    const title=document.getElementById("goalTitle").value.trim();if(!title){toast("Add a goal title");return}
-    state.goals.push({id:newId("g"),storyId:id,chapterId:document.getElementById("goalChapter").value||null,title,detail:document.getElementById("goalDetail").value.trim(),status:"open",createdAt:new Date().toISOString()});
-    save();closeModal();openStory(id);toast("Goal added");
+    const title=val("goalTitle");if(!title){toast("Add a goal title");return}
+    state.goals.push({id:newId("g"),storyId:id,chapterId:val("goalChapter")||null,title,detail:val("goalDetail"),status:"open",createdAt:new Date().toISOString()});
+    saveAndReturn(id,"Goal added");
   };
 }
 function openChapter(id){
-  showModal("Add Chapter",`
-    <div class="field"><label>Chapter</label><input id="chapterTitle" placeholder="A meaningful thread within this Story"></div>
-    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveChapter">Add chapter</button></div>`);
+  showModal("Add Chapter",
+    textField("chapterTitle","Chapter","","A meaningful thread within this Story")+
+    modalFooter("saveChapter","Add chapter"));
   document.getElementById("saveChapter").onclick=()=>{
-    const title=document.getElementById("chapterTitle").value.trim();if(!title){toast("Add a chapter title");return}
+    const title=val("chapterTitle");if(!title){toast("Add a chapter title");return}
     state.chapters.push({id:newId("s"),storyId:id,title,status:"active",createdAt:new Date().toISOString()});
-    save();closeModal();openStory(id);toast("Chapter added");
+    saveAndReturn(id,"Chapter added");
   };
 }
 function openLog(defaultId){
-  if(!state.stories.some(x=>x.status==="active")){toast("Create a Story first");openAddStory();return}
-  showModal("Log a Journey Entry",`
-    <div class="field"><label>Story</label><select id="logStory">${state.stories.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${esc(x.icon)} ${esc(x.name)}</option>`).join("")}</select></div>
-    <div class="field"><label>What happened?</label><textarea id="logNote" placeholder="Write a small field note…"></textarea></div>
-    <div class="field"><label>Date</label><input id="logDate" type="date" value="${todayLocal()}"></div>
-    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveLog">Add to Journey</button></div>`);
+  const active=state.stories.filter(x=>x.status==="active");
+  if(!active.length){toast("Create a Story first");openAddStory();return}
+  showModal("Log a Journey Entry",
+    selectField("logStory","Story",active.map(x=>[x.id,`${x.icon} ${x.name}`]),defaultId)+
+    field("What happened?",`<textarea id="logNote" placeholder="Write a small field note…"></textarea>`)+
+    dateField("logDate","Date",todayLocal())+
+    modalFooter("saveLog","Add to Journey"));
   document.getElementById("saveLog").onclick=()=>{
-    const note=document.getElementById("logNote").value.trim();if(!note){toast("Add a field note first");return}
-    const sid=document.getElementById("logStory").value;
-    state.journey.push({id:newId("a"),storyId:sid,stepId:null,note,date:document.getElementById("logDate").value});
+    const note=val("logNote");if(!note){toast("Add a field note first");return}
+    const sid=val("logStory");
+    state.journey.push({id:newId("a"),storyId:sid,stepId:null,note,date:val("logDate")});
     save();closeModal();toast("Journey updated");
     if(currentStory===sid)openStory(sid);else renderHome();
   };
 }
 function openStoryModal(editId){
   const story=storyById(editId);
-  showModal("Edit Story",`
-    <div class="field"><label>Name</label><input id="storyName" value="${esc(story.name)}"></div>
-    <div class="field"><label>Icon</label><input id="storyIcon" maxlength="2" value="${esc(story.icon)}"></div>
-    <div class="field"><label>Attention</label><select id="storyAttention">${["max","active","available","background"].map(v=>`<option value="${v}" ${story.attention===v?"selected":""}>${v.replace("_"," ")}</option>`).join("")}</select></div>
-    <div class="field"><label>Story type</label><select id="mainStoryChoice"><option value="no">Other story</option><option value="yes" ${state.mainStoryId===story.id?"selected":""}>Main Story</option></select></div>
-    <div class="modal-footer"><button class="btn text danger" id="deleteStoryBtn">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveStory">Save</button></div>`);
+  showModal("Edit Story",
+    textField("storyName","Name",story.name)+
+    field("Icon",`<input id="storyIcon" maxlength="2" value="${esc(story.icon)}">`)+
+    selectField("storyAttention","Attention",Object.keys(attRank).map(v=>[v,v]),story.attention)+
+    selectField("mainStoryChoice","Story type",[["no","Other story"],["yes","Main Story"]],state.mainStoryId===story.id?"yes":"no")+
+    modalFooter("saveStory","Save","deleteStoryBtn"));
   document.getElementById("deleteStoryBtn").onclick=()=>deleteStory(editId);
   document.getElementById("saveStory").onclick=()=>{
-    story.name=document.getElementById("storyName").value.trim()||story.name;
-    story.icon=document.getElementById("storyIcon").value||"✦";
-    story.attention=document.getElementById("storyAttention").value;
-    if(document.getElementById("mainStoryChoice").value==="yes")state.mainStoryId=story.id;
+    story.name=val("storyName")||story.name;
+    story.icon=val("storyIcon")||"✦";
+    story.attention=val("storyAttention");
+    if(val("mainStoryChoice")==="yes")state.mainStoryId=story.id;
     else if(state.mainStoryId===story.id){
       const fallback=state.stories.find(x=>x.status==="active"&&x.id!==story.id);state.mainStoryId=fallback?.id||story.id;
     }
-    save();closeModal();openStory(editId);toast("Story updated");
+    saveAndReturn(editId,"Story updated");
   };
 }
 function openAddStory(){
-  showModal("Add Story",`
-    <div class="field"><label>Story name</label><input id="newStoryName" placeholder="e.g. Photography"></div>
-    <div class="field"><label>Icon</label><input id="newStoryIcon" maxlength="2" value="✦"></div>
-    <div class="field"><label>Attention</label><select id="newStoryAttention">${["max","active","available","background"].map(v=>`<option value="${v}">${v.replace("_"," ")}</option>`).join("")}</select></div>
-    <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveNewStory">Create story</button></div>`);
+  showModal("Add Story",
+    textField("newStoryName","Story name","","e.g. Photography")+
+    field("Icon",`<input id="newStoryIcon" maxlength="2" value="✦">`)+
+    selectField("newStoryAttention","Attention",Object.keys(attRank).map(v=>[v,v]),"max")+
+    modalFooter("saveNewStory","Create story"));
   document.getElementById("saveNewStory").onclick=()=>{
-    const name=document.getElementById("newStoryName").value.trim();if(!name){toast("Name your Story");return}
+    const name=val("newStoryName");if(!name){toast("Name your Story");return}
     const id=newId("q");
-    state.stories.push({id,name,icon:document.getElementById("newStoryIcon").value||"✦",attention:document.getElementById("newStoryAttention").value,status:"active",createdAt:new Date().toISOString()});
+    state.stories.push({id,name,icon:val("newStoryIcon")||"✦",attention:val("newStoryAttention"),status:"active",createdAt:new Date().toISOString()});
     if(!state.mainStoryId)state.mainStoryId=id;
-    save();closeModal();openStory(id);toast("Story created");
+    saveAndReturn(id,"Story created");
   };
 }
 /* ===== SECTION: backup ===== */

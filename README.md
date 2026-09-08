@@ -83,6 +83,8 @@ No dependencies, no install step. The suite reads `index.html`, extracts named f
 
 `tests/persistence.test.js` covers the migration runner, the shape checks, and the import path. Nothing in the persistence band changes without a test.
 
+`tests/modals.test.js` covers the modal building blocks.
+
 The **derivations** band is where testable logic belongs: pure functions that take state and return data. Anything deciding what is shown, in what order, or what a count is goes there rather than inside a renderer. Renderers turn data into HTML and nothing more.
 
 When refactoring for speed or tidiness, keep the old implementation in the test and assert the new one matches it. `tests/selectors.test.js` is the pattern.
@@ -287,7 +289,6 @@ Product, roughly in order:
 
 Codebase, whenever there is appetite:
 
-- **Modal shell.** The four `openEdit*` functions share one skeleton; extract it, keeping each delete cascade explicit rather than config. Worth doing before Events, so Events is configuration rather than a fifth copy.
 - **CSS consolidation.** 43 selectors have more than one base-layer definition, and the breakpoints repeat: three `@media(max-width:900px)` blocks and two at 560px. `tests/conventions.test.js` holds the live count as a ceiling that may only fall.
 - **File split.** Optional and last. Requires changing the service worker to network-first for all same-origin assets in the same commit. See [Why one file](#why-one-file).
 
@@ -335,6 +336,7 @@ Things the app does not have, and should not grow. Each was considered and rejec
 - **Deleting a parent never destroys its children.** The rules and the reasoning are in [Deleting things](#deleting-things); they live in one table in the code so the confirmation text and the behaviour cannot drift apart.
 - Completed Goals and dormant Chapters stay **visible but quiet** on the Story page rather than disappearing, so there is always a route back to editing them. Never a red failure signal. The pickers and the featured goal use the filtered `goals()`/`chaptersIn()`; the Story page uses `allGoals()`/`allChaptersIn()`.
 - Dates use **local** calendar time, never `toISOString()`, which is UTC and stamps the previous day after midnight in a positive-offset timezone.
+- **A modal is a list of fields.** `textField()`, `dateField()`, `selectField()` and `modalFooter()` build the markup, `val()` reads a field, `saveAndReturn()` ends the common case. Adding a modal is a short function, not another copy of the same markup. The delete *cascade* stays in `DELETE_RULES` and is never modal configuration; `wireDelete()` is only the wiring, which is identical for every kind.
 - No em dashes in UI copy. Commas.
 
 ### Known open items
