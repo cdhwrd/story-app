@@ -678,13 +678,7 @@ function renderHome(){
 
   if(list.length===0){
     document.getElementById("main").innerHTML=`
-      <section class="home-hero">
-        <div>
-          <div class="eyebrow">Your story</div>
-          <h1 class="serif-title">Start with one part of your life.</h1>
-          <p class="hero-note">Career, Writing, Health, whatever matters to you. You can add more whenever something new comes into focus.</p>
-        </div>
-      </section>
+      ${homeHero("Start with one part of your life.","Career, Writing, Health, whatever matters to you. You can add more whenever something new comes into focus.")}
       <div class="section-rule"><span>Begin</span></div>
       ${emptyState("The page is blank.","Create your first Story to start finding your way. There's nothing else to set up first.",{page:true,extra:`<button class="btn primary" id="firstStoryBtn">＋ Create your first Story</button>`})}`;
     document.getElementById("firstStoryBtn").onclick=openAddStory;
@@ -711,12 +705,7 @@ function renderHome(){
     const active=new Set(list.map(x=>x.id));
     const all=flatSteps(active);
     document.getElementById("main").innerHTML=`
-      <section class="home-hero">
-        <div>
-          <div class="eyebrow">Your story</div>
-          <h1 class="serif-title">What's in motion.</h1>
-        </div>
-      </section>
+      ${homeHero("What's in motion.")}
       ${toggle}
       ${all.length?`<section class="step-list flat-steps">
         ${all.map(t=>{
@@ -724,20 +713,13 @@ function renderHome(){
           return stepRow(t,{meta:s?`${esc(s.icon)} ${esc(s.name)}`:"",edit:false});
         }).join("")}
       </section>`:emptyState("Nothing queued.","Open a Story and add a step whenever one occurs to you.",{page:true})}`;
-    document.querySelectorAll("[data-complete]").forEach(el=>el.onclick=()=>completeStep(el.dataset.complete));
-    document.querySelectorAll("[data-view]").forEach(el=>el.onclick=()=>{homeView=el.dataset.view;renderHome()});
+    bindMain();
     renderStorageStatus();
     return;
   }
 
   document.getElementById("main").innerHTML=`
-    <section class="home-hero">
-      <div>
-        <div class="eyebrow">Your story</div>
-        <h1 class="serif-title">What story are you writing?</h1>
-        <p class="hero-note">Choose where to go next. Keep the direction visible. Let the steps add up to a life that feels like yours.</p>
-      </div>
-    </section>
+    ${homeHero("What story are you writing?","Choose where to go next. Keep the direction visible. Let the steps add up to a life that feels like yours.")}
     ${toggle}
 
     ${main?`
@@ -765,20 +747,9 @@ function renderHome(){
 
     <div class="section-rule"><span>Stories</span><button class="btn" id="homeAddStoryBtn">＋ Story</button></div>
     <section class="story-grid">
-      ${others.map(x=>{
-        const g=featuredGoal(x.id); const a=latest(x.id);
-        return `<button class="story-card" data-card="${x.id}">
-          <div><div class="card-icon">${esc(x.icon)}</div><h3>${esc(x.name)}</h3>
-            <div class="card-goal-label">Goal</div>
-            <div class="card-goal">${g?esc(g.title):"Choose a direction"}</div>
-          </div>
-          <div class="card-footer"><div class="card-journey">${a?`Journey · ${humanDate(a)}`:"No journey yet"}</div><div class="card-open">Open →</div></div>
-        </button>`
-      }).join("")}
+      ${others.map(storyCard).join("")}
     </section>`;
-  document.querySelectorAll("[data-card]").forEach(el=>el.onclick=()=>openStory(el.dataset.card));
-  document.querySelectorAll("[data-view]").forEach(el=>el.onclick=()=>{homeView=el.dataset.view;renderHome()});
-  document.querySelectorAll("[data-open-main]").forEach(el=>el.onclick=()=>openStory(el.dataset.openMain));
+  bindMain();
   // Lives inside re-rendered markup, so it must be rebound on every render.
   const addBtn=document.getElementById("homeAddStoryBtn");
   if(addBtn)addBtn.onclick=openAddStory;
@@ -813,7 +784,51 @@ function stepRow(t,{meta="",edit=true}={}){
     ${edit?`<button class="icon-btn" data-edit-step="${t.id}" title="Edit ${practice?"practice":"step"}">✎</button>`:""}
   </div>`;
 }
-function goalRow(g){  const done=g.status==="complete";
+/* Every data- attribute in the app, wired in one place after a render.
+   A selector that matches nothing is a no-op, so this is safe to call
+   from any view. That is the point: a new view gets its wiring for free
+   instead of silently rendering dead buttons, which has happened once.
+   tests/binding.test.js checks this list against the markup helpers. */
+function bindMain(){
+  const on=(sel,fn)=>document.querySelectorAll(sel).forEach(el=>el.onclick=()=>fn(el));
+  on("[data-card]",el=>openStory(el.dataset.card));
+  on("[data-open-main]",el=>openStory(el.dataset.openMain));
+  on("[data-view]",el=>{homeView=el.dataset.view;renderHome()});
+  on("[data-complete]",el=>completeStep(el.dataset.complete));
+  on("[data-mark]",el=>markPractice(el.dataset.mark));
+  on("[data-edit-chapter]",el=>openEditChapter(el.dataset.editChapter));
+  on("[data-edit-goal]",el=>openEditGoal(el.dataset.editGoal));
+  on("[data-edit-step]",el=>openEditStep(el.dataset.editStep));
+  on("[data-edit-journey]",el=>openEditJourney(el.dataset.editJourney));
+}
+/* The home hero, written three times with only the headline and an
+   optional note differing. */
+function homeHero(title,note){
+  return `<section class="home-hero">
+    <div>
+      <div class="eyebrow">Your story</div>
+      <h1 class="serif-title">${esc(title)}</h1>
+      ${note?`<p class="hero-note">${esc(note)}</p>`:""}
+    </div>
+  </section>`;
+}
+function storyCard(x){
+  const g=featuredGoal(x.id), a=latest(x.id);
+  return `<button class="story-card" data-card="${x.id}">
+    <div>
+      <div class="card-icon">${esc(x.icon)}</div>
+      <h3>${esc(x.name)}</h3>
+      <div class="card-goal-label">Goal</div>
+      <div class="card-goal">${g?esc(g.title):"Choose a direction"}</div>
+    </div>
+    <div class="card-footer">
+      <div class="card-journey">${a?`Journey · ${humanDate(a)}`:"No journey yet"}</div>
+      <div class="card-open">Open →</div>
+    </div>
+  </button>`;
+}
+function goalRow(g){
+  const done=g.status==="complete";
   const bits=[done?"complete":"",g.detail].filter(Boolean).map(esc).join(" · ");
   return `<div class="goal-row-item${done?" goal-done":""}">
     <div class="goal-row-copy">
@@ -906,12 +921,7 @@ function openStory(id){
   document.getElementById("addSubBtn").onclick=()=>openChapter(id);
   document.getElementById("quickStepAdd").onclick=()=>addQuickStep(id);
   document.getElementById("quickStepInput").addEventListener("keydown",e=>{if(e.key==="Enter")addQuickStep(id)});
-  document.querySelectorAll("[data-complete]").forEach(b=>b.onclick=()=>completeStep(b.dataset.complete));
-  document.querySelectorAll("[data-mark]").forEach(b=>b.onclick=()=>markPractice(b.dataset.mark));
-  document.querySelectorAll("[data-edit-chapter]").forEach(b=>b.onclick=()=>openEditChapter(b.dataset.editChapter));
-  document.querySelectorAll("[data-edit-goal]").forEach(b=>b.onclick=()=>openEditGoal(b.dataset.editGoal));
-  document.querySelectorAll("[data-edit-step]").forEach(b=>b.onclick=()=>openEditStep(b.dataset.editStep));
-  document.querySelectorAll("[data-edit-journey]").forEach(b=>b.onclick=()=>openEditJourney(b.dataset.editJourney));
+  bindMain();
 }
 function stepContext(t){
   const g=state.goals.find(x=>x.id===t.goalId);
