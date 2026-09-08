@@ -12,20 +12,20 @@ module.exports = function (t) {
   /* The logic exactly as it was written inline in openStory, kept here
      so the extraction can be proven equivalent rather than assumed. */
   const oldGrouped = (ss, gs) =>
-    ss.map((s) => ({ chapter: s, goals: gs.filter((g) => g.subQuestId === s.id) }));
+    ss.map((s) => ({ chapter: s, goals: gs.filter((g) => g.chapterId === s.id) }));
   const oldLoose = (ss, gs) =>
-    gs.filter((g) => !g.subQuestId || !ss.some((s) => s.id === g.subQuestId));
+    gs.filter((g) => !g.chapterId || !ss.some((s) => s.id === g.chapterId));
 
   const chapters = [
     { id: "c1", title: "Chapter one" },
     { id: "c2", title: "Chapter two" }
   ];
   const goals = [
-    { id: "g1", title: "In chapter one", subQuestId: "c1" },
-    { id: "g2", title: "Also chapter one", subQuestId: "c1" },
-    { id: "g3", title: "In chapter two", subQuestId: "c2" },
-    { id: "g4", title: "No chapter at all", subQuestId: null },
-    { id: "g5", title: "Points at a deleted chapter", subQuestId: "cGone" }
+    { id: "g1", title: "In chapter one", chapterId: "c1" },
+    { id: "g2", title: "Also chapter one", chapterId: "c1" },
+    { id: "g3", title: "In chapter two", chapterId: "c2" },
+    { id: "g4", title: "No chapter at all", chapterId: null },
+    { id: "g5", title: "Points at a deleted chapter", chapterId: "cGone" }
   ];
 
   t.section("grouping matches the goal to its chapter");
@@ -50,7 +50,7 @@ module.exports = function (t) {
     const ng = Math.floor(Math.random() * 10);
     const rg = Array.from({ length: ng }, (_, i) => ({
       id: "g" + i,
-      subQuestId: Math.random() < 0.3 ? null : "c" + Math.floor(Math.random() * (nc + 1))
+      chapterId: Math.random() < 0.3 ? null : "c" + Math.floor(Math.random() * (nc + 1))
     }));
     const a = JSON.stringify(goalsByChapter(rc, rg).map((x) => ({ c: x.chapter.id, g: x.goals.map((g) => g.id) })));
     const b = JSON.stringify(oldGrouped(rc, rg).map((x) => ({ c: x.chapter.id, g: x.goals.map((g) => g.id) })));

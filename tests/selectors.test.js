@@ -9,18 +9,18 @@
 const { loadGlobal } = require("./harness");
 
 module.exports = function (t) {
-  global.state = { quests: [], activities: [], tasks: [] };
+  global.state = { stories: [], journey: [], steps: [] };
   global.attRank = { max: 0, active: 1, available: 2, background: 3 };
 
-  loadGlobal(["acts", "latest", "activeStories"]);
+  loadGlobal(["journeyIn", "latest", "activeStories"]);
 
   /* The implementations as they were before the refactor. */
   const oldActs = (id) =>
-    state.activities.filter((x) => x.questId === id)
+    state.journey.filter((x) => x.storyId === id)
       .sort((a, b) => b.date.localeCompare(a.date));
   const oldLatest = (id) => oldActs(id)[0]?.date || "";
   const oldActive = () =>
-    [...state.quests].filter((x) => x.status === "active")
+    [...state.stories].filter((x) => x.status === "active")
       .sort((a, b) =>
         attRank[a.attention] - attRank[b.attention] ||
         (oldLatest(b.id) || "").localeCompare(oldLatest(a.id) || ""));
@@ -32,10 +32,10 @@ module.exports = function (t) {
 
   for (let run = 0; run < 400; run++) {
     const nq = 1 + Math.floor(Math.random() * 7);
-    state.quests = [];
-    state.activities = [];
+    state.stories = [];
+    state.journey = [];
     for (let i = 0; i < nq; i++) {
-      state.quests.push({
+      state.stories.push({
         id: "q" + i,
         name: "S" + i,
         attention: atts[Math.floor(Math.random() * 4)],
@@ -45,13 +45,13 @@ module.exports = function (t) {
     const na = Math.floor(Math.random() * 25);
     for (let i = 0; i < na; i++) {
       const d = new Date(2026, 0, 1 + Math.floor(Math.random() * 300));
-      state.activities.push({
+      state.journey.push({
         id: "a" + i,
-        questId: "q" + Math.floor(Math.random() * nq),
+        storyId: "q" + Math.floor(Math.random() * nq),
         date: d.toISOString().slice(0, 10)
       });
     }
-    for (const q of state.quests) {
+    for (const q of state.stories) {
       checked++;
       if (latest(q.id) !== oldLatest(q.id)) latestMismatch++;
     }
@@ -65,12 +65,12 @@ module.exports = function (t) {
   t.ok("activeStories() ordering identical every run", orderMismatch === 0);
 
   t.section("edge cases");
-  state.quests = [{ id: "q1", attention: "active", status: "active" }];
-  state.activities = [];
+  state.stories = [{ id: "q1", attention: "active", status: "active" }];
+  state.journey = [];
   t.ok("no activity returns an empty string", latest("q1") === "");
   t.ok("a story with no activity is still listed", activeStories().length === 1);
-  state.quests = [];
+  state.stories = [];
   t.ok("no stories returns an empty list", activeStories().length === 0);
-  state.quests = [{ id: "q1", attention: "active", status: "paused" }];
+  state.stories = [{ id: "q1", attention: "active", status: "paused" }];
   t.ok("paused stories are excluded", activeStories().length === 0);
 };

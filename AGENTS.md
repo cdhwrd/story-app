@@ -33,6 +33,7 @@ A change is not finished until all of these are true:
 - Never add a second definition of a CSS selector. Edit the existing rule.
 - Never hide an obsolete class with `display:none`. Remove or rename it.
 - Never store a number the app can derive from records.
+- Never reintroduce the pre-v3 state keys (`quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId`, `taskId`). The state uses the UI's words.
 - Never introduce streaks, badges, points, due dates, or red failure states.
 - Never use an em dash in UI copy. Use a comma.
 - Never reintroduce offset or rotated decoration that needs `overflow:hidden` to stay in its card.

@@ -72,7 +72,9 @@ node tests/run.js
 
 No dependencies, no install step. The suite reads `index.html`, extracts named functions from the inline script, and exercises the real source rather than a copy. CI runs the same command on every push.
 
-`tests/conventions.test.js` holds the project rules as assertions, including three ratchets (duplicate selectors, unused classes, inline styles) whose ceilings may only be lowered. AGENTS.md states the conventions; this is what enforces them.
+`tests/conventions.test.js` holds the project rules as assertions, including three ratchets (duplicate selectors, unused classes, inline styles) whose ceilings may only be lowered, and a guard that fails the build if the pre-v3 state keys reappear. AGENTS.md states the conventions; this is what enforces them.
+
+`tests/persistence.test.js` covers the migration runner. v1 and v2 both shipped uncovered, which is why it exists.
 
 The **derivations** band is where testable logic belongs: pure functions that take state and return data. Anything deciding what is shown, in what order, or what a count is goes there rather than inside a renderer. Renderers turn data into HTML and nothing more.
 
@@ -80,34 +82,36 @@ When refactoring for speed or tidiness, keep the old implementation in the test 
 
 ## Data model
 
-The whole state is a single record in IndexedDB (see the single-document decision below). Current `schemaVersion` is **2**.
+The whole state is a single record in IndexedDB (see the single-document decision below). Current `schemaVersion` is **3**.
 
 ```text
-Story  (state.quests)
-  └── Chapter  (state.subs)          sub.questId → Story
-        └── Goal  (state.goals)      goal.subQuestId → Chapter (nullable)
-              └── Step  (state.tasks)    task.goalId → Goal (nullable)
+Story  (state.stories)
+  └── Chapter  (state.chapters)      chapter.storyId → Story
+        └── Goal  (state.goals)      goal.chapterId → Chapter (nullable)
+              └── Step  (state.steps)    step.goalId → Goal (nullable)
 
-Journey  (state.activities)          activity.questId → Story
+Journey  (state.journey)             entry.storyId → Story
 ```
 
-Every item also carries `questId`, so a Story's contents can be fetched without walking the tree.
+Every item also carries `storyId`, so a Story's contents can be fetched without walking the tree.
 
-**Internal names differ from the UI names**, for historical reasons. Don't rename these casually; a rename means a migration:
-
-| UI name | State key | Notes |
+| Entity | State key | Fields |
 |---|---|---|
-| Story | `quests` | `id`, `name`, `icon`, `attention`, `status` |
-| Chapter | `subs` | `id`, `questId`, `title`, `status` |
-| Goal | `goals` | `id`, `questId`, `subQuestId`, `title`, `detail`, `status` |
-| Step | `tasks` | `id`, `questId`, `goalId`, `title`, `status`, `completedAt`, `mode`, `anchor`, `lastMarkedAt` |
-| Journey entry | `activities` | `id`, `questId`, `taskId`, `note`, `date`, `kind` |
+| Story | `stories` | `id`, `name`, `icon`, `attention`, `status` |
+| Chapter | `chapters` | `id`, `storyId`, `title`, `status` |
+| Goal | `goals` | `id`, `storyId`, `chapterId`, `title`, `detail`, `status` |
+| Step | `steps` | `id`, `storyId`, `goalId`, `title`, `status`, `completedAt`, `mode`, `anchor`, `lastMarkedAt` |
+| Journey entry | `journey` | `id`, `storyId`, `stepId`, `note`, `date`, `kind` |
 
 Relationships are **real foreign key fields**, not a generic tag or polymorphic relation system.
 
+The state used to keep the vocabulary the product started with, `quests`, `subs`, `tasks` and `activities`, while the UI said Story, Chapter, Step and Journey. This section carried a translation table so a reader could hold both at once. v3 renamed the keys and the table is gone. The old names survive in exactly two places, both deliberate: `MIGRATIONS[3]`, whose job is to name them, and `PRE_V3_LISTS`, which lets an export made before the rename still restore. A conventions test fails the build if they turn up anywhere else.
+
+Selectors scoped to a Story carry an `In` suffix, `chaptersIn(id)`, `stepsIn(id)`, `journeyIn(id)`, because `story` and `chapters` are already local variable names and the bare words would shadow them. `goals(id)` and `allGoals(id)` kept their names; the word was never wrong.
+
 ### Steps and Practices
 
-A Step has two modes, held in `task.mode`:
+A Step has two modes, held in `step.mode`:
 
 - `"once"` (the default, and what an absent `mode` means) is the original behaviour. It completes, and it leaves the list.
 - `"practice"` is a habit. It never completes. Marking it writes a Journey entry and leaves the record open, so it stays on the Story page.
@@ -117,12 +121,12 @@ They share one record deliberately. A Practice is not a separate entity, it is a
 Rules that hold the mechanic together:
 
 - **Mark it as often as you do it.** There is no per-day limit. The count records times, not days, so walking twice on a Tuesday is two marks.
-- **The count is derived**, from Journey entries carrying that `taskId`. It is never stored, so it can only ever reflect something that actually happened.
+- **The count is derived**, from Journey entries carrying that `stepId`. It is never stored, so it can only ever reflect something that actually happened.
 - **Nothing is one-way.** Every Journey entry that came from a step or a practice carries a ticked checkbox. Unticking it removes the entry, and either puts the step back on the list or removes that single mark. `lastMarkedAt` is recomputed from surviving entries rather than cleared.
 - **Presence only, never absence.** The UI shows marks made. It has no cadence target, no denominator, and therefore no shortfall. An unmarked day produces no entry and no indicator. There is deliberately no way to express "3x a week", because a target creates a deficit.
 - `anchor` is the implementation intention ("after morning coffee"), prompted but never required.
 
-A Step links to its Chapter *transitively*, through its Goal. Steps have no direct chapter field. There used to be an unused `task.subQuestId` (always written as `null`, never set by any UI); it was removed when the hierarchy was settled.
+A Step links to its Chapter *transitively*, through its Goal. Steps have no direct chapter field. There used to be an unused direct chapter field on the step record (always written as `null`, never set by any UI); it was removed when the hierarchy was settled, before the v3 rename.
 
 ### Deleting things
 
@@ -144,6 +148,13 @@ Still to change, once a timeline view exists: a deleted Story should keep its Jo
 
 - **v1** stripped per-item `points` and `goal.progress`, both deliberately removed features
 - **v2** renamed `goal.target` to `goal.detail`, carrying existing text across rather than dropping it
+- **v3** renamed the state keys to the UI's own words: `quests`→`stories`, `subs`→`chapters`, `tasks`→`steps`, `activities`→`journey`, `questId`→`storyId`, `subQuestId`→`chapterId`, `taskId`→`stepId`. It also drops the vestigial chapter field a few old steps carried, rather than renaming it: a Step reaches its Chapter through its Goal, and `step.chapterId` would look exactly like the live field on a Goal
+
+v3 shipped in two commits on purpose. The migration landed first, defined but dormant, with `SCHEMA_VERSION` left at 2; the bump came with the rename of the rest of the app. Activating it earlier would have moved stored data to the new shape while the renderers still read the old one, showing an empty app in between.
+
+Migrations copy on **presence, not truthiness**. `stepId` and `chapterId` are legitimately `null`, for a Journey entry typed by hand and a Goal filed under no Chapter, and a truthiness test would drop the key and change what the record means.
+
+The `backups` store is currently **write-only**: `writeBackup()` fills it and prunes it, but nothing reads it back, so there is no restore-from-backup UI. Those snapshots are stored in whatever shape was current when they were written, so the day that UI exists, it has to migrate them on the way out.
 
 ---
 
@@ -304,7 +315,7 @@ MVP prototype. The core Story → Chapter → Goal → Step → Journey loop is 
 
 Product, roughly in order:
 
-1. **Events and the timeline.** Events are objective things on a date (dentist, a birthday), separate from Steps and with no due-date semantics. The timeline is one spine scrolled both ways: events ahead, Journey behind. Optional `questId`, since not everything belongs to a Story.
+1. **Events and the timeline.** Events are objective things on a date (dentist, a birthday), separate from Steps and with no due-date semantics. The timeline is one spine scrolled both ways: events ahead, Journey behind. Optional `storyId`, since not everything belongs to a Story.
 2. **`.ics` export.** One event at a time, using the event id as `UID` so re-exporting updates rather than duplicating. One-way and a copy; no OAuth, no sync.
 3. **Deleted Stories keep their Journey entries.** Blocked until the timeline exists, because every current view finds entries by Story, so preserved entries would be invisible. Denormalise the Story name onto them as text.
 4. **A derived line on the Story page**, stating something true about the record ("part of your life since March, 14 marks"). Needs a Story start date; `createdAt` exists on newer Stories, older ones may need backfilling.
@@ -357,7 +368,7 @@ Steps is a flat list of every open one-off step across every active Story, newes
 - Row actions are quiet **✎ icon buttons**, not "Edit" text. Six repeated "Edit" labels competed with the content for attention.
 - Section kickers were dropped. Three panels all labelled "DIRECTION" said nothing.
 - **Deleting a parent never destroys its children.** The rules and the reasoning are in [Deleting things](#deleting-things); they live in one table in the code so the confirmation text and the behaviour cannot drift apart.
-- Completed Goals and dormant Chapters stay **visible but quiet** on the Story page rather than disappearing, so there is always a route back to editing them. Never a red failure signal. The pickers and the featured goal use the filtered `goals()`/`subs()`; the Story page uses `allGoals()`/`allSubs()`.
+- Completed Goals and dormant Chapters stay **visible but quiet** on the Story page rather than disappearing, so there is always a route back to editing them. Never a red failure signal. The pickers and the featured goal use the filtered `goals()`/`chaptersIn()`; the Story page uses `allGoals()`/`allChaptersIn()`.
 - Dates use **local** calendar time, never `toISOString()`, which is UTC and stamps the previous day after midnight in a positive-offset timezone.
 
 ### Known open items
@@ -369,6 +380,6 @@ Steps is a flat list of every open one-off step across every active Story, newes
 - Completed steps aren't listed anywhere outside the Journey, though they can now be reopened from there. The Journey records it either way
 - What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
 - The Story page is macro; there is no focused "what do I do now" view yet
-- Two old steps still carry a legacy `subQuestId: null`, and `completedAt` is date-only while `createdAt` is a full ISO timestamp. A schema v3 could tidy both
+- `completedAt` is date-only while `createdAt` is a full ISO timestamp. Not yet reconciled. (The legacy chapter field some old steps carried was dropped by v3.)
 - The stylesheet still has stacked override layers (`.story-card` x7, `.main-story` x4, three `@media(max-width:900px)` blocks). This is what caused the oversized-input bug; consolidation is pending
 - "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries.

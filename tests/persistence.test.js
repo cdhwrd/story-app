@@ -103,6 +103,19 @@ module.exports = async function (t) {
   t.ok("goal.chapterId is null, not missing", s.goals[1].chapterId === null && "chapterId" in s.goals[1]);
   t.ok("journey.stepId is null, not missing", s.journey[1].stepId === null && "stepId" in s.journey[1]);
 
+  /* A Step reaches its Chapter through its Goal and has no chapter
+     field of its own, but a few old records still carry the legacy one,
+     always null. Renaming it would produce a step.chapterId that looks
+     exactly like the live field on a Goal. */
+  t.section("the vestigial chapter field on a step is dropped, not renamed");
+  const vestigial = v2State();
+  vestigial.tasks[0].subQuestId = null;
+  const cleaned = v3(vestigial);
+  t.ok("the old field is gone from the step", !("subQuestId" in cleaned.steps[0]));
+  t.ok("and it was not renamed onto the step", !("chapterId" in cleaned.steps[0]));
+  t.ok("the goal keeps its real chapterId", cleaned.goals[0].chapterId === "s1");
+  t.ok("the step keeps its goalId", cleaned.steps[0].goalId === "g1");
+
   /* --- everything else -------------------------------------------- */
   t.section("nothing the rename does not own is touched");
   const before = v2State();
@@ -201,11 +214,49 @@ module.exports = async function (t) {
   t.ok("re-migrating an up-to-date state is a no-op", same(current, done));
   t.ok("and writes no backup", backups.length === 0);
 
-  /* --- the dormancy promise ------------------------------------------ */
-  t.section("v3 stays dormant until the rename lands");
+  /* --- the import path ------------------------------------------------ */
+  /* The ordering trap: validateImport runs BEFORE migrate. Checked for
+     the new key names only, it would reject every export made before v3
+     with "missing its stories list", and the migration that would have
+     fixed the file never gets to run. */
+  t.section("an export made before v3 still restores");
+  const { validateImport, isCurrentShape, restoreSummary } =
+    load(["validateImport", "isCurrentShape", "restoreSummary", "STATE_LISTS", "PRE_V3_LISTS"]);
+
+  t.ok("a pre-v3 export passes validation", validateImport(v2State()) === null);
+  t.ok("a v3 export passes validation", validateImport(once) === null);
+  t.ok("junk is rejected", typeof validateImport(null) === "string");
+  t.ok("a text file is rejected", typeof validateImport("not an export") === "string");
+
+  const missing = v2State();
+  delete missing.tasks;
+  t.ok("a file missing a list is rejected", typeof validateImport(missing) === "string");
+  t.ok("and the message names the list in today's words", validateImport(missing).includes("steps"));
+
+  t.section("the shape check knows old from new");
+  t.ok("a pre-v3 state is not the current shape", isCurrentShape(v2State()) === false);
+  t.ok("a migrated state is", isCurrentShape(once) === true);
+  t.ok("junk is not", isCurrentShape(null) === false);
+
+  /* The confirmation names what is about to be replaced, and is shown
+     before migrate() has run, so it has to read either shape. */
+  t.section("the restore confirmation counts either shape");
+  t.ok("counts a pre-v3 file", restoreSummary(v2State()) === "1 Story, 2 Journey entries");
+  t.ok("counts a v3 file the same way", restoreSummary(once) === "1 Story, 2 Journey entries");
+  t.ok(
+    "singular reads correctly",
+    restoreSummary({ stories: [{}], journey: [{}] }) === "1 Story, 1 Journey entry"
+  );
+  t.ok(
+    "an empty export does not throw",
+    restoreSummary({ stories: [], journey: [] }) === "0 Stories, 0 Journey entries"
+  );
+
+  /* --- activation ------------------------------------------------------ */
+  t.section("v3 is live");
   t.ok("MIGRATIONS[3] exists", typeof MIGRATIONS[3] === "function");
   t.ok(
-    "SCHEMA_VERSION is still 2, so nothing migrates yet",
-    schemaVersionInSource() === 2
+    "SCHEMA_VERSION is 3, so stored data is migrated on load",
+    schemaVersionInSource() === 3
   );
 };

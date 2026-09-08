@@ -432,15 +432,15 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
 
 <script>
 /* ===== SECTION: persistence ===== */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const DEFAULT_STATE = {
   schemaVersion: SCHEMA_VERSION,
   mainStoryId:null,
-  quests:[],
-  subs:[],
+  stories:[],
+  chapters:[],
   goals:[],
-  tasks:[],
-  activities:[]
+  steps:[],
+  journey:[]
 };
 
 /* ---------------------------------------------------------------
@@ -546,6 +546,10 @@ const MIGRATIONS={
         for(const [from,to] of Object.entries(FIELDS))move(rec,from,to);
       }
     }
+    // A few old steps carry a vestigial chapter field, always null and
+    // never set by any UI: a Step reaches its Chapter through its Goal.
+    // Renaming it would dress a dead field up as a live one.
+    for(const step of s.steps||[])delete step.chapterId;
     return s;
   }
 };
@@ -622,32 +626,32 @@ function save(){
 /* ===== SECTION: derivations =====
    Pure functions of state. Everything here is testable and everything
    here is tested. New logic belongs in this band, not in a renderer. */
-function q(id){return state.quests.find(x=>x.id===id)}
-/* goals()/subs() are the "in play" lists, used for pickers and the
-   featured goal. The Story page uses allGoals()/allSubs() so that
+function storyById(id){return state.stories.find(x=>x.id===id)}
+/* goals()/chaptersIn() are the "in play" lists, used for pickers and the
+   featured goal. The Story page uses allGoals()/allChaptersIn() so that
    completing a goal or making a chapter dormant does not hide the only
    route back to editing it. */
-function goals(id){return state.goals.filter(x=>x.questId===id&&x.status!=="complete")}
-function subs(id){return state.subs.filter(x=>x.questId===id&&x.status!=="dormant")}
-function allGoals(id){return state.goals.filter(x=>x.questId===id)}
-function allSubs(id){return state.subs.filter(x=>x.questId===id)}
-function tasks(id){return state.tasks.filter(x=>x.questId===id)}
-function openTasks(id){return tasks(id).filter(x=>x.status==="open")}
+function goals(id){return state.goals.filter(x=>x.storyId===id&&x.status!=="complete")}
+function chaptersIn(id){return state.chapters.filter(x=>x.storyId===id&&x.status!=="dormant")}
+function allGoals(id){return state.goals.filter(x=>x.storyId===id)}
+function allChaptersIn(id){return state.chapters.filter(x=>x.storyId===id)}
+function stepsIn(id){return state.steps.filter(x=>x.storyId===id)}
+function openStepsIn(id){return stepsIn(id).filter(x=>x.status==="open")}
 /* A Practice is the same record as a Step with mode:"practice". It never
    completes, it accumulates marks. Absent mode means "once", so every
    task written before this existed keeps behaving exactly as it did. */
-function practices(id){return openTasks(id).filter(x=>x.mode==="practice")}
-function onceSteps(id){return openTasks(id).filter(x=>x.mode!=="practice")}
+function practices(id){return openStepsIn(id).filter(x=>x.mode==="practice")}
+function onceSteps(id){return openStepsIn(id).filter(x=>x.mode!=="practice")}
 /* Derived from the Journey, never stored, so the number can only ever
    reflect something that actually happened. */
-function markCount(t){return state.activities.filter(a=>a.taskId===t.id).length}
+function markCount(t){return state.journey.filter(a=>a.stepId===t.id).length}
 /* Every open one-off step across every active Story. Practices are
    excluded on purpose: a list of practices not yet marked today is a
    list of absences. Newest first, so what surfaces is momentum rather
    than the stalest thing on the pile. */
 function flatSteps(activeIds){
-  return state.tasks
-    .filter(t=>t.status==="open"&&t.mode!=="practice"&&activeIds.has(t.questId))
+  return state.steps
+    .filter(t=>t.status==="open"&&t.mode!=="practice"&&activeIds.has(t.storyId))
     .sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
 }function marksLine(t){
   const n=markCount(t);
@@ -655,20 +659,20 @@ function flatSteps(activeIds){
   if(t.lastMarkedAt===todayLocal())return `Marked today · ${n} in all`;
   return `${plural(n,"mark")} · last ${humanDate(t.lastMarkedAt||todayLocal())}`;
 }
-function acts(id){return state.activities.filter(x=>x.questId===id).sort((a,b)=>b.date.localeCompare(a.date))}
+function journeyIn(id){return state.journey.filter(x=>x.storyId===id).sort((a,b)=>b.date.localeCompare(a.date))}
 function latest(id){
   let d="";
-  for(const a of state.activities)if(a.questId===id&&a.date>d)d=a.date;
+  for(const a of state.journey)if(a.storyId===id&&a.date>d)d=a.date;
   return d;
 }
 /* renderNav and renderHome both need this list, and renderHome calls
    renderNav, so it was being built twice per render. One definition. */
 function activeStories(){
   const last={};
-  for(const a of state.activities){
-    if(!last[a.questId]||a.date>last[a.questId])last[a.questId]=a.date;
+  for(const a of state.journey){
+    if(!last[a.storyId]||a.date>last[a.storyId])last[a.storyId]=a.date;
   }
-  return [...state.quests].filter(x=>x.status==="active")
+  return [...state.stories].filter(x=>x.status==="active")
     .sort((a,b)=>attRank[a.attention]-attRank[b.attention]||(last[b.id]||"").localeCompare(last[a.id]||""));
 }
 /* Ids were newId("a"), which collides when two records are created
@@ -714,7 +718,7 @@ function renderNav(){
   </button>`).join("");
   nav.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>openStory(b.dataset.nav));
 }
-function featuredGoal(id){return goals(id)[0]||state.goals.find(x=>x.questId===id)||null}
+function featuredGoal(id){return goals(id)[0]||state.goals.find(x=>x.storyId===id)||null}
 function renderHome(){
   currentStory=null;renderNav();
   const list=activeStories();
@@ -729,9 +733,9 @@ function renderHome(){
     return;
   }
 
-  const main=q(state.mainStoryId)||list[0];
+  const main=storyById(state.mainStoryId)||list[0];
   const mainGoal=main?featuredGoal(main.id):null;
-  const mainOpen=main?openTasks(main.id).slice(0,2):[];
+  const mainOpen=main?openStepsIn(main.id).slice(0,2):[];
   const others=list.filter(x=>x.id!==main?.id);
   const toggle=`
     <div class="view-toggle">
@@ -752,7 +756,7 @@ function renderHome(){
       ${toggle}
       ${all.length?`<section class="step-list flat-steps">
         ${all.map(t=>{
-          const s=q(t.questId);
+          const s=storyById(t.storyId);
           return stepRow(t,{meta:s?`${esc(s.icon)} ${esc(s.name)}`:"",edit:false});
         }).join("")}
       </section>`:emptyState("Nothing queued.","Open a Story and add a step whenever one occurs to you.",{page:true})}`;
@@ -875,8 +879,8 @@ function storyCard(x){
    ticked checkbox: unticking puts the step back, or removes that mark.
    Manually logged entries have nothing to put back, so no checkbox. */
 function journalEntry(a){
-  const t=a.taskId?state.tasks.find(x=>x.id===a.taskId):null;
-  const label=a.kind==="practice"?"Practice marked":a.taskId?"Step completed":"Activity logged";
+  const t=a.stepId?state.steps.find(x=>x.id===a.stepId):null;
+  const label=a.kind==="practice"?"Practice marked":a.stepId?"Step completed":"Activity logged";
   return `<div class="journal-entry">
     <div class="journal-date">${humanDate(a.date)}</div>
     <div class="journal-note">${esc(a.note)}</div>
@@ -899,58 +903,58 @@ function journalEntry(a){
 const DELETE_RULES={
   chapter:{
     label:"Chapter",
-    find:id=>state.subs.find(x=>x.id===id),
+    find:id=>state.chapters.find(x=>x.id===id),
     name:c=>c.title,
-    impact:id=>({unfiled:{goals:state.goals.filter(g=>g.subQuestId===id).length}}),
+    impact:id=>({unfiled:{goals:state.goals.filter(g=>g.chapterId===id).length}}),
     apply:id=>{
-      state.goals.forEach(g=>{if(g.subQuestId===id)g.subQuestId=null});
-      state.subs=state.subs.filter(x=>x.id!==id);
+      state.goals.forEach(g=>{if(g.chapterId===id)g.chapterId=null});
+      state.chapters=state.chapters.filter(x=>x.id!==id);
     }
   },
   goal:{
     label:"Goal",
     find:id=>state.goals.find(x=>x.id===id),
     name:g=>g.title,
-    impact:id=>({unfiled:{steps:state.tasks.filter(t=>t.goalId===id).length}}),
+    impact:id=>({unfiled:{steps:state.steps.filter(t=>t.goalId===id).length}}),
     apply:id=>{
-      state.tasks.forEach(t=>{if(t.goalId===id)t.goalId=null});
+      state.steps.forEach(t=>{if(t.goalId===id)t.goalId=null});
       state.goals=state.goals.filter(x=>x.id!==id);
     }
   },
   step:{
     label:"Step",
-    find:id=>state.tasks.find(x=>x.id===id),
+    find:id=>state.steps.find(x=>x.id===id),
     name:t=>t.title,
     /* Journey entries are deliberately kept: they record something that
        happened, which stays true after the plan is thrown away. */
     impact:()=>({}),
-    apply:id=>{state.tasks=state.tasks.filter(x=>x.id!==id)}
+    apply:id=>{state.steps=state.steps.filter(x=>x.id!==id)}
   },
   entry:{
     label:"Journey entry",
-    find:id=>state.activities.find(x=>x.id===id),
+    find:id=>state.journey.find(x=>x.id===id),
     name:a=>a.note,
     impact:()=>({}),
-    apply:id=>{state.activities=state.activities.filter(x=>x.id!==id)}
+    apply:id=>{state.journey=state.journey.filter(x=>x.id!==id)}
   },
   story:{
     label:"Story",
-    find:id=>state.quests.find(x=>x.id===id),
+    find:id=>state.stories.find(x=>x.id===id),
     name:s=>s.name,
     backup:"pre-delete-story",
     impact:id=>({removed:{
-      chapters:state.subs.filter(x=>x.questId===id).length,
-      goals:state.goals.filter(x=>x.questId===id).length,
-      steps:state.tasks.filter(x=>x.questId===id).length,
-      entries:state.activities.filter(x=>x.questId===id).length
+      chapters:state.chapters.filter(x=>x.storyId===id).length,
+      goals:state.goals.filter(x=>x.storyId===id).length,
+      steps:state.steps.filter(x=>x.storyId===id).length,
+      entries:state.journey.filter(x=>x.storyId===id).length
     }}),
     apply:id=>{
-      state.subs=state.subs.filter(x=>x.questId!==id);
-      state.goals=state.goals.filter(x=>x.questId!==id);
-      state.tasks=state.tasks.filter(x=>x.questId!==id);
-      state.activities=state.activities.filter(x=>x.questId!==id);
-      state.quests=state.quests.filter(x=>x.id!==id);
-      if(state.mainStoryId===id)state.mainStoryId=state.quests[0]?.id||null;
+      state.chapters=state.chapters.filter(x=>x.storyId!==id);
+      state.goals=state.goals.filter(x=>x.storyId!==id);
+      state.steps=state.steps.filter(x=>x.storyId!==id);
+      state.journey=state.journey.filter(x=>x.storyId!==id);
+      state.stories=state.stories.filter(x=>x.id!==id);
+      if(state.mainStoryId===id)state.mainStoryId=state.stories[0]?.id||null;
     }
   }
 };
@@ -999,8 +1003,8 @@ function goalRow(g){
 }
 function openStory(id){
   currentStory=id;renderNav();
-  const story=q(id); if(!story)return renderHome();
-  const gs=allGoals(id), ss=allSubs(id), ps=practices(id), qs=onceSteps(id), history=acts(id);
+  const story=storyById(id); if(!story)return renderHome();
+  const gs=allGoals(id), ss=allChaptersIn(id), ps=practices(id), qs=onceSteps(id), history=journeyIn(id);
   document.getElementById("main").innerHTML=`
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
@@ -1080,20 +1084,20 @@ function openStory(id){
 }
 function stepContext(t){
   const g=state.goals.find(x=>x.id===t.goalId);
-  const c=g?state.subs.find(s=>s.id===g.subQuestId):null;
+  const c=g?state.chapters.find(s=>s.id===g.chapterId):null;
   return [c?.title,g?.title].filter(Boolean).map(esc).join(" · ")||"A step in this Story";
 }
 /* Groups a Story's goals under their Chapter. Was an inline IIFE inside
    openStory's template literal; pulled out so the grouping rule can be
    tested without rendering anything. */
 function goalsByChapter(chapters,goals){
-  return chapters.map(s=>({chapter:s,goals:goals.filter(g=>g.subQuestId===s.id)}));
+  return chapters.map(s=>({chapter:s,goals:goals.filter(g=>g.chapterId===s.id)}));
 }
 /* A goal is loose if it has no chapter, or points at a chapter that no
-   longer exists (deleting a Chapter nulls subQuestId on its goals, but
+   longer exists (deleting a Chapter nulls chapterId on its goals, but
    an import or a future bug could leave a dangling id). */
 function looseGoals(chapters,goals){
-  return goals.filter(g=>!g.subQuestId||!chapters.some(s=>s.id===g.subQuestId));
+  return goals.filter(g=>!g.chapterId||!chapters.some(s=>s.id===g.chapterId));
 }
 function showStamp(label){
   const stamp=document.getElementById("stepStamp");
@@ -1105,19 +1109,19 @@ function showStamp(label){
    days. Nothing here can produce a miss, since an unmarked day simply
    has no entry. */
 function markPractice(id){
-  const t=state.tasks.find(x=>x.id===id);if(!t||t.mode!=="practice")return;
+  const t=state.steps.find(x=>x.id===id);if(!t||t.mode!=="practice")return;
   const today=todayLocal();
   t.lastMarkedAt=today;
-  state.activities.push({id:newId("a"),questId:t.questId,taskId:t.id,kind:"practice",note:t.title,date:today});
+  state.journey.push({id:newId("a"),storyId:t.storyId,stepId:t.id,kind:"practice",note:t.title,date:today});
   save(); showStamp("PRACTICE MARKED"); currentStory?openStory(currentStory):renderHome();
 }
 /* The date of a practice's most recent surviving mark, or null. Used to
    recompute lastMarkedAt after an entry is removed, so the trigger's
    marked-today state always reflects entries that actually exist. */
-function lastMarkFor(taskId){
+function lastMarkFor(stepId){
   let d=null;
-  for(const a of state.activities){
-    if(a.taskId===taskId&&(!d||a.date>d))d=a.date;
+  for(const a of state.journey){
+    if(a.stepId===stepId&&(!d||a.date>d))d=a.date;
   }
   return d;
 }
@@ -1126,14 +1130,14 @@ function lastMarkFor(taskId){
    practice's lastMarkedAt is recomputed from what remains rather than
    cleared, so removing an older mark does not wrongly un-mark today. */
 function uncompleteEntry(entryId){
-  const a=state.activities.find(x=>x.id===entryId); if(!a)return;
-  const t=a.taskId?state.tasks.find(x=>x.id===a.taskId):null;
+  const a=state.journey.find(x=>x.id===entryId); if(!a)return;
+  const t=a.stepId?state.steps.find(x=>x.id===a.stepId):null;
   /* No step or practice behind it means nothing to put back. Removing it
      here would be a delete with no confirmation, reached through a
      control that isn't a delete. Manual entries are removed through the
      edit modal instead. */
   if(!t)return;
-  state.activities=state.activities.filter(x=>x.id!==entryId);
+  state.journey=state.journey.filter(x=>x.id!==entryId);
   if(t.mode==="practice"){
     t.lastMarkedAt=lastMarkFor(t.id);
   }else{
@@ -1143,16 +1147,16 @@ function uncompleteEntry(entryId){
   save(); currentStory?openStory(currentStory):renderHome();
 }
 function completeStep(id){
-  const t=state.tasks.find(x=>x.id===id);if(!t||t.status==="complete")return;
+  const t=state.steps.find(x=>x.id===id);if(!t||t.status==="complete")return;
   if(t.mode==="practice")return markPractice(id);
   t.status="complete";t.completedAt=todayLocal();
-  state.activities.push({id:newId("a"),questId:t.questId,taskId:t.id,note:t.title,date:t.completedAt});
+  state.journey.push({id:newId("a"),storyId:t.storyId,stepId:t.id,note:t.title,date:t.completedAt});
   save(); showStamp(); currentStory?openStory(currentStory):renderHome();
 }
 function addQuickStep(id){
   const input=document.getElementById("quickStepInput");
   const title=input.value.trim();if(!title){toast("Add a step first");return}
-  state.tasks.push({id:newId("t"),questId:id,goalId:goals(id)[0]?.id||null,title,status:"open",createdAt:new Date().toISOString()});
+  state.steps.push({id:newId("t"),storyId:id,goalId:goals(id)[0]?.id||null,title,status:"open",createdAt:new Date().toISOString()});
   save();toast("Step added");openStory(id);
 }
 /* ---- Edit and delete -------------------------------------------------
@@ -1169,7 +1173,7 @@ function confirmDelete(title,warning,onConfirm){
 }
 /* ===== SECTION: modals ===== */
 function openEditChapter(id){
-  const c=state.subs.find(x=>x.id===id); if(!c)return;
+  const c=state.chapters.find(x=>x.id===id); if(!c)return;
   showModal("Edit Chapter",`
     <div class="field"><label>Chapter</label><input id="chapterTitleEdit" value="${esc(c.title)}"></div>
     <div class="field"><label>Status</label><select id="chapterStatus">${["active","dormant"].map(v=>`<option value="${v}" ${c.status===v?"selected":""}>${v}</option>`).join("")}</select></div>
@@ -1178,22 +1182,22 @@ function openEditChapter(id){
     const t=document.getElementById("chapterTitleEdit").value.trim();
     if(!t){toast("Give the chapter a title");return}
     c.title=t;c.status=document.getElementById("chapterStatus").value;
-    save();closeModal();openStory(c.questId);toast("Chapter updated");
+    save();closeModal();openStory(c.storyId);toast("Chapter updated");
   };
   document.getElementById("deleteChapter").onclick=()=>{
     confirmDelete("Delete Chapter",deleteMessage("chapter",id),async()=>{
       await applyDelete("chapter",id);
-      save();closeModal();openStory(c.questId);toast("Chapter deleted");
+      save();closeModal();openStory(c.storyId);toast("Chapter deleted");
     });
   };
 }
 function openEditGoal(id){
   const g=state.goals.find(x=>x.id===id); if(!g)return;
-  const chapters=subs(g.questId);
+  const chapters=chaptersIn(g.storyId);
   showModal("Edit Goal",`
     <div class="field"><label>Goal</label><input id="goalTitleEdit" value="${esc(g.title)}"></div>
     <div class="field"><label>Detail</label><input id="goalDetailEdit" value="${esc(g.detail||"")}"></div>
-    <div class="field"><label>Chapter</label><select id="goalChapterEdit"><option value="">No chapter</option>${chapters.map(c=>`<option value="${c.id}" ${g.subQuestId===c.id?"selected":""}>${esc(c.title)}</option>`).join("")}</select></div>
+    <div class="field"><label>Chapter</label><select id="goalChapterEdit"><option value="">No chapter</option>${chapters.map(c=>`<option value="${c.id}" ${g.chapterId===c.id?"selected":""}>${esc(c.title)}</option>`).join("")}</select></div>
     <div class="field"><label>Status</label><select id="goalStatus">${["open","complete"].map(v=>`<option value="${v}" ${g.status===v?"selected":""}>${v}</option>`).join("")}</select></div>
     <div class="modal-footer"><button class="btn text danger" id="deleteGoal">Delete</button><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveGoalEdit">Save</button></div>`);
   document.getElementById("saveGoalEdit").onclick=()=>{
@@ -1201,20 +1205,20 @@ function openEditGoal(id){
     if(!t){toast("Give the goal a title");return}
     g.title=t;
     g.detail=document.getElementById("goalDetailEdit").value.trim();
-    g.subQuestId=document.getElementById("goalChapterEdit").value||null;
+    g.chapterId=document.getElementById("goalChapterEdit").value||null;
     g.status=document.getElementById("goalStatus").value;
-    save();closeModal();openStory(g.questId);toast("Goal updated");
+    save();closeModal();openStory(g.storyId);toast("Goal updated");
   };
   document.getElementById("deleteGoal").onclick=()=>{
     confirmDelete("Delete Goal",deleteMessage("goal",id),async()=>{
       await applyDelete("goal",id);
-      save();closeModal();openStory(g.questId);toast("Goal deleted");
+      save();closeModal();openStory(g.storyId);toast("Goal deleted");
     });
   };
 }
 function openEditStep(id){
-  const t=state.tasks.find(x=>x.id===id); if(!t)return;
-  const gs=goals(t.questId);
+  const t=state.steps.find(x=>x.id===id); if(!t)return;
+  const gs=goals(t.storyId);
   const isPractice=t.mode==="practice";
   showModal(isPractice?"Edit Practice":"Edit Step",`
     <div class="field"><label>Step</label><input id="stepTitleEdit" value="${esc(t.title)}"></div>
@@ -1237,17 +1241,17 @@ function openEditStep(id){
     t.mode=mode;
     if(mode==="practice"){t.anchor=document.getElementById("stepAnchorEdit").value.trim()||null;t.status="open"}
     else{delete t.anchor}
-    save();closeModal();openStory(t.questId);toast(mode==="practice"?"Practice updated":"Step updated");
+    save();closeModal();openStory(t.storyId);toast(mode==="practice"?"Practice updated":"Step updated");
   };
   document.getElementById("deleteStep").onclick=()=>{
     confirmDelete("Delete Step",deleteMessage("step",id),async()=>{
       await applyDelete("step",id);
-      save();closeModal();openStory(t.questId);toast("Step deleted");
+      save();closeModal();openStory(t.storyId);toast("Step deleted");
     });
   };
 }
 function openEditJourney(id){
-  const a=state.activities.find(x=>x.id===id); if(!a)return;
+  const a=state.journey.find(x=>x.id===id); if(!a)return;
   showModal("Edit Journey entry",`
     <div class="field"><label>What happened</label><input id="journeyNoteEdit" value="${esc(a.note)}"></div>
     <div class="field"><label>Date</label><input id="journeyDateEdit" type="date" value="${esc(a.date)}"></div>
@@ -1256,17 +1260,17 @@ function openEditJourney(id){
     const n=document.getElementById("journeyNoteEdit").value.trim();
     if(!n){toast("Say what happened");return}
     a.note=n;a.date=document.getElementById("journeyDateEdit").value||a.date;
-    save();closeModal();openStory(a.questId);toast("Journey entry updated");
+    save();closeModal();openStory(a.storyId);toast("Journey entry updated");
   };
   document.getElementById("deleteJourney").onclick=()=>{
     confirmDelete("Delete Journey entry",deleteMessage("entry",id),async()=>{
       await applyDelete("entry",id);
-      save();closeModal();openStory(a.questId);toast("Journey entry deleted");
+      save();closeModal();openStory(a.storyId);toast("Journey entry deleted");
     });
   };
 }
 async function deleteStory(id){
-  if(!q(id))return;
+  if(!storyById(id))return;
   confirmDelete("Delete Story",deleteMessage("story",id),async()=>{
     await applyDelete("story",id);
     save();closeModal();renderHome();toast("Story deleted");
@@ -1282,7 +1286,7 @@ function closeModal(){document.getElementById("modal").classList.remove("open")}
 document.getElementById("modalClose").onclick=closeModal;
 document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
 function openGoal(id){
-  const chapters=subs(id);
+  const chapters=chaptersIn(id);
   showModal("Add Goal",`
     <div class="field"><label>Goal</label><input id="goalTitle" placeholder="What do you want this Story to become?"></div>
     <div class="field"><label>Detail</label><input id="goalDetail" placeholder="Optional, any detail worth noting"></div>
@@ -1290,7 +1294,7 @@ function openGoal(id){
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveGoal">Add goal</button></div>`);
   document.getElementById("saveGoal").onclick=()=>{
     const title=document.getElementById("goalTitle").value.trim();if(!title){toast("Add a goal title");return}
-    state.goals.push({id:newId("g"),questId:id,subQuestId:document.getElementById("goalChapter").value||null,title,detail:document.getElementById("goalDetail").value.trim(),status:"open",createdAt:new Date().toISOString()});
+    state.goals.push({id:newId("g"),storyId:id,chapterId:document.getElementById("goalChapter").value||null,title,detail:document.getElementById("goalDetail").value.trim(),status:"open",createdAt:new Date().toISOString()});
     save();closeModal();openStory(id);toast("Goal added");
   };
 }
@@ -1300,27 +1304,27 @@ function openChapter(id){
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveChapter">Add chapter</button></div>`);
   document.getElementById("saveChapter").onclick=()=>{
     const title=document.getElementById("chapterTitle").value.trim();if(!title){toast("Add a chapter title");return}
-    state.subs.push({id:newId("s"),questId:id,title,status:"active",createdAt:new Date().toISOString()});
+    state.chapters.push({id:newId("s"),storyId:id,title,status:"active",createdAt:new Date().toISOString()});
     save();closeModal();openStory(id);toast("Chapter added");
   };
 }
 function openLog(defaultId){
-  if(!state.quests.some(x=>x.status==="active")){toast("Create a Story first");openAddStory();return}
+  if(!state.stories.some(x=>x.status==="active")){toast("Create a Story first");openAddStory();return}
   showModal("Log a Journey Entry",`
-    <div class="field"><label>Story</label><select id="logStory">${state.quests.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${esc(x.icon)} ${esc(x.name)}</option>`).join("")}</select></div>
+    <div class="field"><label>Story</label><select id="logStory">${state.stories.filter(x=>x.status==="active").map(x=>`<option value="${x.id}" ${x.id===defaultId?"selected":""}>${esc(x.icon)} ${esc(x.name)}</option>`).join("")}</select></div>
     <div class="field"><label>What happened?</label><textarea id="logNote" placeholder="Write a small field note…"></textarea></div>
     <div class="field"><label>Date</label><input id="logDate" type="date" value="${todayLocal()}"></div>
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="saveLog">Add to Journey</button></div>`);
   document.getElementById("saveLog").onclick=()=>{
     const note=document.getElementById("logNote").value.trim();if(!note){toast("Add a field note first");return}
     const sid=document.getElementById("logStory").value;
-    state.activities.push({id:newId("a"),questId:sid,taskId:null,note,date:document.getElementById("logDate").value});
+    state.journey.push({id:newId("a"),storyId:sid,stepId:null,note,date:document.getElementById("logDate").value});
     save();closeModal();toast("Journey updated");
     if(currentStory===sid)openStory(sid);else renderHome();
   };
 }
 function openStoryModal(editId){
-  const story=q(editId);
+  const story=storyById(editId);
   showModal("Edit Story",`
     <div class="field"><label>Name</label><input id="storyName" value="${esc(story.name)}"></div>
     <div class="field"><label>Icon</label><input id="storyIcon" maxlength="2" value="${esc(story.icon)}"></div>
@@ -1334,7 +1338,7 @@ function openStoryModal(editId){
     story.attention=document.getElementById("storyAttention").value;
     if(document.getElementById("mainStoryChoice").value==="yes")state.mainStoryId=story.id;
     else if(state.mainStoryId===story.id){
-      const fallback=state.quests.find(x=>x.status==="active"&&x.id!==story.id);state.mainStoryId=fallback?.id||story.id;
+      const fallback=state.stories.find(x=>x.status==="active"&&x.id!==story.id);state.mainStoryId=fallback?.id||story.id;
     }
     save();closeModal();openStory(editId);toast("Story updated");
   };
@@ -1348,16 +1352,25 @@ function openAddStory(){
   document.getElementById("saveNewStory").onclick=()=>{
     const name=document.getElementById("newStoryName").value.trim();if(!name){toast("Name your Story");return}
     const id=newId("q");
-    state.quests.push({id,name,icon:document.getElementById("newStoryIcon").value||"✦",attention:document.getElementById("newStoryAttention").value,status:"active",createdAt:new Date().toISOString()});
+    state.stories.push({id,name,icon:document.getElementById("newStoryIcon").value||"✦",attention:document.getElementById("newStoryAttention").value,status:"active",createdAt:new Date().toISOString()});
     if(!state.mainStoryId)state.mainStoryId=id;
     save();closeModal();openStory(id);toast("Story created");
   };
 }
 /* ===== SECTION: backup ===== */
+const STATE_LISTS=["stories","chapters","goals","steps","journey"];
+/* Exports made before v3 carry the old key names. They are still the
+   user's data and must still restore, so the check runs before the
+   rename happens rather than assuming it already has. */
+const PRE_V3_LISTS={stories:"quests",chapters:"subs",steps:"tasks",journey:"activities"};
+function isCurrentShape(obj){
+  return !!obj&&typeof obj==="object"&&STATE_LISTS.every(k=>Array.isArray(obj[k]));
+}
 function validateImport(obj){
   if(!obj||typeof obj!=="object")return "That file isn't a Story export.";
-  for(const k of ["quests","subs","goals","tasks","activities"]){
-    if(!Array.isArray(obj[k]))return `That file is missing its ${k} list.`;
+  for(const k of STATE_LISTS){
+    const old=PRE_V3_LISTS[k];
+    if(!Array.isArray(obj[k])&&!(old&&Array.isArray(obj[old])))return `That file is missing its ${k} list.`;
   }
   return null;
 }
@@ -1381,10 +1394,17 @@ function openPasteRestore(){
     confirmRestore(parsed);
   };
 }
+/* What the confirmation promises to restore. Pure, and tolerant of a
+   pre-v3 file, which has not been through migrate() yet at this point. */
+function restoreSummary(parsed){
+  const list=k=>parsed[k]||parsed[PRE_V3_LISTS[k]]||[];
+  const stories=list("stories").length, entries=list("journey").length;
+  return `${stories} ${stories===1?"Story":"Stories"}, ${entries} Journey ${entries===1?"entry":"entries"}`;
+}
 function confirmRestore(parsed){
   const problem=validateImport(parsed);
   if(problem){toast(problem);return}
-  const counts=`${parsed.quests.length} ${parsed.quests.length===1?"Story":"Stories"}, ${parsed.activities.length} Journey ${parsed.activities.length===1?"entry":"entries"}`;
+  const counts=restoreSummary(parsed);
   const when=parsed.exportedAt?new Date(parsed.exportedAt).toLocaleDateString():"an unknown date";
   showModal("Restore",`
     <p style="margin:0 0 6px;font-size:14px">This will <strong>replace</strong> everything currently in Story with this data.</p>
@@ -1392,7 +1412,12 @@ function confirmRestore(parsed){
     <div class="modal-footer"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="confirmRestoreBtn">Replace my data</button></div>`);
   document.getElementById("confirmRestoreBtn").onclick=async()=>{
     await writeBackup(JSON.parse(JSON.stringify(state)),"pre-restore");
-    state=await migrate(parsed);
+    const restored=await migrate(parsed);
+    /* Migration is the only thing standing between an old file and the
+       shape every view reads. If it did not land, keep what is on screen
+       rather than replacing it with something unreadable. */
+    if(!isCurrentShape(restored)){toast("Couldn't read that backup");return}
+    state=restored;
     await idbPut(STORE,state,STATE_KEY);
     closeModal();renderHome();toast("Story restored");
   };

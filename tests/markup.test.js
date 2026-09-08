@@ -7,7 +7,7 @@
 const { loadGlobal } = require("./harness");
 
 module.exports = function (t) {
-  global.state = { tasks: [], activities: [], goals: [], subs: [] };
+  global.state = { steps: [], journey: [], goals: [], chapters: [] };
   loadGlobal(["esc", "todayLocal", "plural", "emptyState", "stepRow"]);
 
   t.section("plural");

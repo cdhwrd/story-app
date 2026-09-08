@@ -31,15 +31,23 @@ function styleSource() {
 }
 
 /* From a start offset, return source through the end of the first
-   brace-balanced block. Used for top-level const object literals. */
+   balanced bracket group, object or array. Used for top-level const
+   literals: lookup tables like DELETE_RULES, and lists like
+   STATE_LISTS. Matching only `{` would run an array declaration on
+   into whatever declaration came next. */
 function extractBraced(src, from, name) {
-  let i = src.indexOf("{", from);
-  if (i < 0) throw new Error(`No object literal for: ${name}`);
+  const open = ["{", "["]
+    .map((c) => ({ c, at: src.indexOf(c, from) }))
+    .filter((x) => x.at >= 0)
+    .sort((a, b) => a.at - b.at)[0];
+  if (!open) throw new Error(`No object or array literal for: ${name}`);
+  const close = open.c === "{" ? "}" : "]";
+  let i = open.at;
   let depth = 0;
   for (;; i++) {
-    if (i >= src.length) throw new Error(`Unbalanced braces reading: ${name}`);
-    if (src[i] === "{") depth++;
-    else if (src[i] === "}" && --depth === 0) break;
+    if (i >= src.length) throw new Error(`Unbalanced brackets reading: ${name}`);
+    if (src[i] === open.c) depth++;
+    else if (src[i] === close && --depth === 0) break;
   }
   return src.slice(from, i + 1) + ";";
 }

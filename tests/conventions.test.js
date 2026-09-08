@@ -120,6 +120,32 @@ module.exports = function (t) {
   const emDash = literals.includes("\u2014");
   t.ok(emDash ? "em dash found in a UI string, use a comma" : "no em dashes in UI copy", !emDash);
 
+  /* --- vocabulary -------------------------------------------------- */
+  t.section("the state speaks the UI's words");
+
+  /* The state used to say quests, subs, tasks and activities while the
+     UI said Story, Chapter, Step and Journey, and the README carried a
+     table so readers could hold both. v3 renamed them. This is what
+     stops the old words creeping back in one record at a time.
+
+     The migration is the one place both vocabularies belong: naming the
+     old keys is its entire job. It is cut out before the check. */
+  const migStart = js.indexOf("const MIGRATIONS={");
+  const migEnd = js.indexOf("\n};", migStart) + 3;
+  const outsideMigrations = js.slice(0, migStart) + js.slice(migEnd);
+  const legacy = /\bquests\b|\bsubs\b|\btasks\b|\bactivities\b|\bquestId\b|\bsubQuestId\b|\btaskId\b/g;
+
+  /* PRE_V3_LISTS names them too, so an export made before the rename
+     still restores. One line, and it points at the migration. */
+  const withoutShim = outsideMigrations.replace(/const PRE_V3_LISTS=\{[^}]*\};?/, "");
+  const stale = [...new Set(withoutShim.match(legacy) || [])];
+  t.ok(
+    stale.length === 0
+      ? "no pre-v3 state key outside the migration"
+      : `pre-v3 state keys are back: ${stale.join(", ")}`,
+    stale.length === 0
+  );
+
   /* --- agent docs ------------------------------------------------ */
   t.section("agent instructions stay short and accurate");
 
