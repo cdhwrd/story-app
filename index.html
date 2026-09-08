@@ -834,8 +834,7 @@ function openStory(id){
           </div>
         </div>
         ${(ss.length||gs.length)?`
-          ${ss.map(s=>{
-            const inChapter=gs.filter(g=>g.subQuestId===s.id);
+          ${goalsByChapter(ss,gs).map(({chapter:s,goals:inChapter})=>{
             return `<div class="chapter-block${s.status==="dormant"?" chapter-dormant":""}">
               <div class="chapter-head">
                 <div class="chapter-name">${esc(s.title)}${s.status==="dormant"?`<span class="tag">dormant</span>`:""}</div>
@@ -845,7 +844,7 @@ function openStory(id){
             </div>`;
           }).join("")}
           ${(()=>{
-            const loose=gs.filter(g=>!g.subQuestId||!ss.some(s=>s.id===g.subQuestId));
+            const loose=looseGoals(ss,gs);
             if(!loose.length)return "";
             return `<div class="chapter-block">
               <div class="chapter-head"><div class="chapter-name chapter-name-loose">${ss.length?"Not in a chapter":"Goals"}</div></div>
@@ -916,6 +915,18 @@ function stepContext(t){
   const g=state.goals.find(x=>x.id===t.goalId);
   const c=g?state.subs.find(s=>s.id===g.subQuestId):null;
   return [c?.title,g?.title].filter(Boolean).map(esc).join(" · ")||"A step in this Story";
+}
+/* Groups a Story's goals under their Chapter. Was an inline IIFE inside
+   openStory's template literal; pulled out so the grouping rule can be
+   tested without rendering anything. */
+function goalsByChapter(chapters,goals){
+  return chapters.map(s=>({chapter:s,goals:goals.filter(g=>g.subQuestId===s.id)}));
+}
+/* A goal is loose if it has no chapter, or points at a chapter that no
+   longer exists (deleting a Chapter nulls subQuestId on its goals, but
+   an import or a future bug could leave a dangling id). */
+function looseGoals(chapters,goals){
+  return goals.filter(g=>!g.subQuestId||!chapters.some(s=>s.id===g.subQuestId));
 }
 function showStamp(label){
   const stamp=document.getElementById("stepStamp");
