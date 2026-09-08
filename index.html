@@ -499,7 +499,14 @@ async function writeBackup(snapshot,reason){
 }
 
 /* Ordered migrations. v1 is the post-points baseline. v2 renames
-   Goal.target to Goal.detail (same free-text field, clearer name). */
+   Goal.target to Goal.detail (same free-text field, clearer name).
+   v3 renames the state keys to the UI's own words.
+
+   v3 is written but NOT yet reached: SCHEMA_VERSION is still 2. It is
+   activated in the commit that renames the rest of the app, because
+   moving live data to the new shape while the renderers still read the
+   old one would show an empty app in between. tests/persistence.test.js
+   holds that promise. */
 const MIGRATIONS={
   1:(s)=>{
     // Legacy states carried per-item points and goal progress. Both are gone.
@@ -515,6 +522,30 @@ const MIGRATIONS={
         delete g.target;
       }
     });
+    return s;
+  },
+  3:(s)=>{
+    // The state kept the vocabulary the product started with. The UI has
+    // said Story, Chapter, Step and Journey for a long time; this is the
+    // state catching up, so nobody has to translate to read the code.
+    const LISTS={quests:"stories",subs:"chapters",tasks:"steps",activities:"journey"};
+    const FIELDS={questId:"storyId",subQuestId:"chapterId",taskId:"stepId"};
+    // Presence, not truthiness. taskId and subQuestId are legitimately
+    // null (a Journey entry typed by hand, a Goal under no Chapter), and
+    // a truthiness test would drop the key and change what it means.
+    const move=(o,from,to)=>{
+      if(o[from]!==undefined){
+        if(o[to]===undefined)o[to]=o[from];
+        delete o[from];
+      }
+    };
+    for(const [from,to] of Object.entries(LISTS))move(s,from,to);
+    // goals keeps its name but still carries the old foreign keys.
+    for(const list of ["stories","chapters","goals","steps","journey"]){
+      for(const rec of s[list]||[]){
+        for(const [from,to] of Object.entries(FIELDS))move(rec,from,to);
+      }
+    }
     return s;
   }
 };
