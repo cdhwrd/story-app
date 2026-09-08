@@ -1,95 +1,89 @@
-# Working on Story
+# AGENTS.md
 
-Standing instructions for anyone, human or agent, changing this repo.
-Read this and the README before making changes. The README explains what
-Story is and why; this file explains how to work on it.
+Story: a single-user, local-first life navigator. One HTML file, no build step, no framework, no dependencies.
 
-## Before touching anything
+## Commands
 
-- `git fetch origin` and compare against `origin/main`. Other sessions may
-  have pushed. Never trust a cached memory of file contents.
-- Read the README's **Known open items**, **Deliberately removed** and
-  **Visual direction** sections, so you don't reintroduce something that
-  was removed on purpose.
+```
+node tests/run.js          # the whole suite. No install step needed.
+git fetch origin           # always, before assuming repo state
+```
+
+There is nothing to build and nothing to install. Deploy is `git push` to `main`; GitHub Pages redeploys in about a minute.
+
+## Before changing anything
+
+1. `git fetch origin` and compare with `origin/main`. Other sessions push here.
+2. Run `node tests/run.js`. It must be green before you start.
+3. Read the README section for what you are touching (table below).
+
+## Done criteria
+
+A change is not finished until all of these are true:
+
+- `node tests/run.js` passes
+- new logic in the derivations band has tests
+- README **Current status** and **Known open items** reflect reality
+- the owner has been reminded to delete the token
+
+## Never
+
+- Never change persistence, migration, restore or delete code without a test.
+- Never commit a file nothing references.
+- Never add a second definition of a CSS selector. Edit the existing rule.
+- Never hide an obsolete class with `display:none`. Remove or rename it.
+- Never store a number the app can derive from records.
+- Never introduce streaks, badges, points, due dates, or red failure states.
+- Never use an em dash in UI copy. Use a comma.
+- Never reintroduce offset or rotated decoration that needs `overflow:hidden` to stay in its card.
 
 ## Finding your way around index.html
 
-Everything is in one file. Grep for these markers rather than scanning:
+Grep for the marker. Line numbers go stale.
 
 | Marker | Holds |
 |---|---|
-| `SECTION: tokens` | CSS custom properties, the palette |
-| `SECTION: styles-poster` | The editorial layer over the base styles |
+| `SECTION: tokens` | CSS custom properties, palette |
+| `SECTION: styles-poster` | editorial layer over base styles |
 | `SECTION: persistence` | IndexedDB, schema version, migrations, backups |
-| `SECTION: derivations` | Pure functions of state. Testable, and tested |
-| `SECTION: views` | Render functions |
-| `SECTION: modals` | Edit and confirm dialogs |
-| `SECTION: backup` | Export, import, restore, Google Drive |
+| `SECTION: derivations` | pure functions of state. Testable, and tested |
+| `SECTION: views` | render functions |
+| `SECTION: modals` | edit and confirm dialogs |
+| `SECTION: backup` | export, import, restore, Google Drive |
 
-Line numbers go stale; markers don't.
+## Where to read why
 
-## Tests
+Open only what the task needs.
 
-```
-node tests/run.js
-```
-
-No dependencies, no install step, no build. The suite reads `index.html`
-directly and extracts named functions from the inline `<script>`, so the
-tests exercise the real source rather than a copy.
-
-Rules:
-
-- **Never change persistence, migration or restore code without a test.**
-  Data loss has happened once already from an untested assumption.
-- **When refactoring for speed or tidiness, keep the old implementation
-  in the test** and assert the new one matches it. See
-  `tests/selectors.test.js` for the pattern.
-- If you add a function to the derivations band, add tests for it. That
-  band exists to be testable.
+| Task | Read |
+|---|---|
+| Deleting, cascades, orphans | [Deleting things](README.md#deleting-things) |
+| Steps, practices, marks | [Steps and Practices](README.md#steps-and-practices) |
+| Home screen, step lists | [Home views](README.md#home-views) |
+| Colour, type, emphasis | [Visual direction](README.md#visual-direction) |
+| Schema, fields, ids | [Data model](README.md#data-model) |
+| Migrations | [Migrations](README.md#migrations) |
+| Tests, harness | [Tests](README.md#tests) |
+| Why one file | [Why one file](README.md#why-one-file) |
+| What not to rebuild | [Deliberately removed](README.md#deliberately-removed) |
+| What to work on | [Current priorities](README.md#current-priorities) |
 
 ## Pushing
 
-1. The owner pastes a short-lived GitHub token scoped to this repo.
-2. Mask the token in any output.
-3. Run `node tests/run.js` before committing. CI runs it too, but a red
-   main is worse than a slow local check.
-4. Commit with a message explaining *why*, push to `main`. Pages
-   redeploys in about a minute.
-5. Remind the owner to delete the token.
+The owner pastes a short-lived token. Mask it in all output.
 
-## Code quality rules
+```
+git push "https://<token>@github.com/cdhwrd/story-app.git" main
+```
 
-These come from things that actually went wrong:
+- The token needs **Contents: read and write**.
+- Touching `.github/workflows/` also needs **Workflows: read and write**, or GitHub rejects the whole push, including for a comment change. Leave workflow files alone unless asked.
+- `git pull` needs `--no-rebase` here; the repo has no pull strategy configured.
 
-- **Never commit a file that isn't wired up.** A whole JS file was once
-  committed with no `<script>` tag referencing it.
-- **Edit CSS rules in place.** Don't stack a new layer of overrides on
-  old ones. One definition per selector. There is existing debt here
-  (see README, Known open items); don't add to it.
-- **If a shared class says something the data model no longer supports,
-  rename or remove it.** Don't hide it with `display:none`.
-- **Contain decorative CSS.** Offset shadows, rotated shapes and
-  pseudo-elements need `overflow:hidden` on the parent. This broke the
-  mobile layout once.
-- **Derive, don't store.** Any number the app shows should be computed
-  from real records. No stored counters that can drift.
-- **Keep the README accurate** after every change. It is the project's
-  source of truth, not decoration.
+## Who this is for
 
-## Product constraints
+The owner uses it daily. It is also built for someone easily overwhelmed and low on motivation. That is why there are no due dates, no streaks, no absence indicators, and why ordering surfaces momentum rather than the stalest item. Design choices that look arbitrary usually follow from this.
 
-Established deliberately. Don't relitigate without asking.
+## Scope
 
-- No streaks, badges, or red "you failed" indicators, anywhere.
-- No points or gamification currency. Removed on purpose.
-- Show presence, never absence. No empty slots waiting to be filled, no
-  cadence targets, no shortfall.
-- Real foreign key fields in the data model, not a generic polymorphic
-  tag system.
-- Local-first. IndexedDB is the source of truth, stored as a single
-  document. The app must work fully offline with no account. Drive backup
-  is optional infrastructure.
-- Keep changes minimal and additive. This is a personal MVP in daily use,
-  not a platform. Prefer small correct changes to big rewrites.
-- No em dashes in UI copy, use commas.
+Small, correct, additive changes. This is a personal MVP in daily use, not a platform. Prefer fixing one thing well to rewriting a section.

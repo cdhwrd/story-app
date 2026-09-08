@@ -72,6 +72,8 @@ node tests/run.js
 
 No dependencies, no install step. The suite reads `index.html`, extracts named functions from the inline script, and exercises the real source rather than a copy. CI runs the same command on every push.
 
+`tests/conventions.test.js` holds the project rules as assertions, including three ratchets (duplicate selectors, unused classes, inline styles) whose ceilings may only be lowered. AGENTS.md states the conventions; this is what enforces them.
+
 The **derivations** band is where testable logic belongs: pure functions that take state and return data. Anything deciding what is shown, in what order, or what a count is goes there rather than inside a renderer. Renderers turn data into HTML and nothing more.
 
 When refactoring for speed or tidiness, keep the old implementation in the test and assert the new one matches it. `tests/selectors.test.js` is the pattern.
@@ -300,20 +302,23 @@ MVP prototype. The core Story → Chapter → Goal → Step → Journey loop is 
 
 ### Current priorities
 
-1. ~~**Persistence foundation**~~ — done, see Phase 1 above
+Product, roughly in order:
 
-2. ~~**Goal / Chapter relationships**~~ — done, see Data model above
+1. **Events and the timeline.** Events are objective things on a date (dentist, a birthday), separate from Steps and with no due-date semantics. The timeline is one spine scrolled both ways: events ahead, Journey behind. Optional `questId`, since not everything belongs to a Story.
+2. **`.ics` export.** One event at a time, using the event id as `UID` so re-exporting updates rather than duplicating. One-way and a copy; no OAuth, no sync.
+3. **Deleted Stories keep their Journey entries.** Blocked until the timeline exists, because every current view finds entries by Story, so preserved entries would be invisible. Denormalise the Story name onto them as text.
+4. **A derived line on the Story page**, stating something true about the record ("part of your life since March, 14 marks"). Needs a Story start date; `createdAt` exists on newer Stories, older ones may need backfilling.
+5. **The return band.** After a quiet stretch, home opens with something the person wrote and how long the Story has existed. Triggered off the date of the most recent Journey entry, never off a stored "last opened", so it responds to the story being quiet rather than tracking the person. No call to action, never a modal, never mentions the gap.
+6. **Practice endings.** `resting` and `woven` statuses, so a practice can be set down or graduate instead of only being deleted.
+7. **Monthly Issue.** Cut by accumulation rather than by calendar, so it never has a thin month. Entries selected by structural rule only (the first time, where it started), never by sentiment, and the rule is stated as the section heading so nothing feels cherry-picked.
 
-3. **Backup**
-   - portable `.story` export
-   - optional Google Drive backup
+Codebase, whenever there is appetite:
 
-4. **Product refinement**
-   - Step lifecycle
-   - editing existing Chapters and Goals
-   - responsive polish
+- **Modal shell.** The four `openEdit*` functions share one skeleton; extract it, keeping each delete cascade explicit rather than config. Worth doing before Events, so Events is configuration rather than a fifth copy.
+- **CSS consolidation.** 37 selectors have more than one base-layer definition, and each breakpoint has two media blocks. `tests/conventions.test.js` holds the count as a ceiling that may only fall.
+- **File split.** Optional and last. Requires changing the service worker to network-first for all same-origin assets in the same commit. See [Why one file](#why-one-file).
 
-Further product expansion should wait until these foundations are reliable.
+Design principles that constrain all of the above are in [Visual direction](#visual-direction) and [Deliberately removed](#deliberately-removed).
 
 ### Visual direction
 
@@ -351,7 +356,7 @@ Steps is a flat list of every open one-off step across every active Story, newes
 - Story detail is three sections: **Direction** (goals nested under their chapter, with a trailing "Not in a chapter" block), **Next step**, and **Journey**. Chapters and Goals were separate panels; merging them made the chapter/goal relationship visible instead of implied.
 - Row actions are quiet **✎ icon buttons**, not "Edit" text. Six repeated "Edit" labels competed with the content for attention.
 - Section kickers were dropped. Three panels all labelled "DIRECTION" said nothing.
-- **Deleting a parent never destroys its children.** Deleting a Chapter leaves its Goals in the Story without a chapter; deleting a Goal leaves its Steps without a goal; deleting a Step leaves any Journey entry it produced intact, because the Journey records what actually happened. Only deleting a Story cascades, and it names exact counts in the confirmation and writes a pre-delete backup first.
+- **Deleting a parent never destroys its children.** The rules and the reasoning are in [Deleting things](#deleting-things); they live in one table in the code so the confirmation text and the behaviour cannot drift apart.
 - Completed Goals and dormant Chapters stay **visible but quiet** on the Story page rather than disappearing, so there is always a route back to editing them. Never a red failure signal. The pickers and the featured goal use the filtered `goals()`/`subs()`; the Story page uses `allGoals()`/`allSubs()`.
 - Dates use **local** calendar time, never `toISOString()`, which is UTC and stamps the previous day after midnight in a positive-offset timezone.
 
