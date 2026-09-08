@@ -31,18 +31,30 @@ function styleSource() {
 }
 
 /*
-  Pull one named function out by matching braces from its opening one.
+  Pull one named function out of the source by matching braces.
 
-  Known limitation: this counts every brace, so it would mis-slice a
-  function containing an unbalanced brace inside a string or comment
-  (e.g. a lone "}" in a quoted string). Template literal ${...} is
-  balanced and therefore fine. If extraction ever starts returning
-  nonsense, this is the first place to look.
+  Known limitation: braces are counted without parsing, so a function
+  containing an unbalanced brace inside a string or comment (a lone "}"
+  in quotes) would be mis-sliced. Template literal ${...} is balanced and
+  therefore fine, as are destructured parameters. If extraction ever
+  returns nonsense, this is the first place to look.
 */
 function extract(name, src) {
   const at = src.indexOf("function " + name + "(");
   if (at < 0) throw new Error(`Function not found in index.html: ${name}`);
-  let i = src.indexOf("{", at);
+
+  /* Skip the parameter list first. A destructured or defaulted parameter
+     (function f(a,{b=1}={}) ...) contains braces, and matching from the
+     first brace would slice the parameter list instead of the body. */
+  let i = src.indexOf("(", at);
+  let parens = 0;
+  for (;; i++) {
+    if (i >= src.length) throw new Error(`Unbalanced parens reading: ${name}`);
+    if (src[i] === "(") parens++;
+    else if (src[i] === ")" && --parens === 0) break;
+  }
+
+  i = src.indexOf("{", i);
   let depth = 0;
   for (;; i++) {
     if (i >= src.length) throw new Error(`Unbalanced braces reading: ${name}`);

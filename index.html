@@ -219,8 +219,6 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .view-tab{font-family:var(--sans);font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;padding:8px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink);cursor:pointer}
 .view-tab.on{background:var(--ink);color:var(--paper2)}
 .flat-steps{margin-bottom:22px}
-.step-story-tag{font-size:11px;color:var(--muted);margin-top:3px}
-.step-marks{font-size:11px;color:var(--muted);margin-top:3px}
 .practice-tag{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:var(--blue);margin-left:7px}
 .step.practice .step-trigger:hover{background:var(--olive-soft);color:var(--ink)}
 .step.practice .step-trigger.marked{background:var(--olive);color:#fff}
@@ -228,6 +226,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   border:1px dashed #cfc5b4;padding:20px 15px;text-align:center;background:#faf6ee;
 }
 .step-empty .empty-title{font-family:var(--serif);font-size:20px}
+.step-empty.page-empty{padding:36px 20px}
 .step-empty p{color:var(--muted);font-size:12px;margin:5px auto 12px;max-width:280px}
 .add-step-row{display:flex;gap:7px;margin-top:12px}
 .add-step-row input{
@@ -621,7 +620,7 @@ function flatSteps(activeIds){
   const n=markCount(t);
   if(!n)return "Ready when you are";
   if(t.lastMarkedAt===todayLocal())return `Marked today · ${n} in all`;
-  return `${n} mark${n===1?"":"s"} · last ${humanDate(t.lastMarkedAt||todayLocal())}`;
+  return `${plural(n,"mark")} · last ${humanDate(t.lastMarkedAt||todayLocal())}`;
 }
 function acts(id){return state.activities.filter(x=>x.questId===id).sort((a,b)=>b.date.localeCompare(a.date))}
 function latest(id){
@@ -687,11 +686,7 @@ function renderHome(){
         </div>
       </section>
       <div class="section-rule"><span>Begin</span></div>
-      <section class="step-empty" style="padding:38px 20px">
-        <div class="empty-title">The page is blank.</div>
-        <p>Create your first Story to start finding your way. There's nothing else to set up first.</p>
-        <button class="btn primary" id="firstStoryBtn">＋ Create your first Story</button>
-      </section>`;
+      ${emptyState("The page is blank.","Create your first Story to start finding your way. There's nothing else to set up first.",{page:true,extra:`<button class="btn primary" id="firstStoryBtn">＋ Create your first Story</button>`})}`;
     document.getElementById("firstStoryBtn").onclick=openAddStory;
     renderStorageStatus();
     return;
@@ -724,18 +719,11 @@ function renderHome(){
       </section>
       ${toggle}
       ${all.length?`<section class="step-list flat-steps">
-        ${all.map(t=>{const s=q(t.questId);return `<div class="step">
-          <button class="step-trigger" data-complete="${t.id}" title="Mark as done">→</button>
-          <div class="step-copy">
-            <h4>${esc(t.title)}</h4>
-            ${s?`<div class="step-story-tag">${esc(s.icon)} ${esc(s.name)}</div>`:""}
-          </div>
-        </div>`}).join("")}
-      </section>`:`
-      <section class="step-empty" style="padding:34px 20px">
-        <div class="empty-title">Nothing queued.</div>
-        <p>Open a Story and add a step whenever one occurs to you.</p>
-      </section>`}`;
+        ${all.map(t=>{
+          const s=q(t.questId);
+          return stepRow(t,{meta:s?`${esc(s.icon)} ${esc(s.name)}`:"",edit:false});
+        }).join("")}
+      </section>`:emptyState("Nothing queued.","Open a Story and add a step whenever one occurs to you.",{page:true})}`;
     document.querySelectorAll("[data-complete]").forEach(el=>el.onclick=()=>completeStep(el.dataset.complete));
     document.querySelectorAll("[data-view]").forEach(el=>el.onclick=()=>{homeView=el.dataset.view;renderHome()});
     renderStorageStatus();
@@ -795,8 +783,37 @@ function renderHome(){
   const addBtn=document.getElementById("homeAddStoryBtn");
   if(addBtn)addBtn.onclick=openAddStory;
 }
-function goalRow(g){
-  const done=g.status==="complete";
+/* "1 step", "3 steps". Was written inline nine times. */
+function plural(n,word,suffix="s"){return `${n} ${word}${n===1?"":suffix}`}
+
+/* Every empty state in the app. `page` is for the full-width ones that
+   stand in for a whole view rather than sitting inside a panel. */
+function emptyState(title,body,{page=false,extra=""}={}){
+  return `<div class="step-empty${page?" page-empty":""}">
+    <div class="empty-title">${esc(title)}</div>
+    <p>${esc(body)}</p>${extra}
+  </div>`;
+}
+
+/* One row for a Step or a Practice. The three call sites (a Story's
+   practices, a Story's steps, and the home Steps list) previously
+   repeated this markup and differed only in the meta line and whether
+   an edit affordance belongs there. Keeping it in one place also keeps
+   the data- attributes and the handler wiring in step. */
+function stepRow(t,{meta="",edit=true}={}){
+  const practice=t.mode==="practice";
+  const marked=practice&&t.lastMarkedAt===todayLocal();
+  return `<div class="step${practice?" practice":""}">
+    <button class="step-trigger${marked?" marked":""}" data-${practice?"mark":"complete"}="${t.id}" title="${practice?"Mark it":"Mark as done"}">${practice?"✓":"→"}</button>
+    <div class="step-copy">
+      <h4>${esc(t.title)}${practice?`<span class="practice-tag">Practice</span>`:""}</h4>
+      ${practice&&t.anchor?`<div class="step-anchor">${esc(t.anchor)}</div>`:""}
+      ${meta?`<div class="step-meta">${meta}</div>`:""}
+    </div>
+    ${edit?`<button class="icon-btn" data-edit-step="${t.id}" title="Edit ${practice?"practice":"step"}">✎</button>`:""}
+  </div>`;
+}
+function goalRow(g){  const done=g.status==="complete";
   const bits=[done?"complete":"",g.detail].filter(Boolean).map(esc).join(" · ");
   return `<div class="goal-row-item${done?" goal-done":""}">
     <div class="goal-row-copy">
@@ -816,7 +833,7 @@ function openStory(id){
       <div class="story-head-icon">${esc(story.icon)}</div>
       <div class="story-head-copy">
         <h1>${esc(story.name)}</h1>
-        <div class="story-head-meta">${state.mainStoryId===id?"★ Main Story · ":""}${history.length} step${history.length===1?"":"s"} taken</div>
+        <div class="story-head-meta">${state.mainStoryId===id?"★ Main Story · ":""}${plural(history.length,"step")} taken</div>
       </div>
       <div class="story-head-actions">
         <button class="btn text head-action" id="logStoryBtn">＋ Log</button>
@@ -851,33 +868,18 @@ function openStory(id){
               ${loose.map(g=>goalRow(g)).join("")}
             </div>`;
           })()}
-        `:`<div class="step-empty"><div class="empty-title">Nothing set yet.</div><p>A goal gives this Story somewhere to go. Chapters group goals if you want them.</p></div>`}
+        `:emptyState("Nothing set yet.","A goal gives this Story somewhere to go. Chapters group goals if you want them.")}
       </section>
 
       <section class="panel">
         <div class="section-title">
           <h2>Next step</h2>
-          <div class="count-label">${ps.length?`${ps.length} practice${ps.length===1?"":"s"} · `:""}${qs.length} planned</div>
+          <div class="count-label">${ps.length?`${plural(ps.length,"practice","s")} · `:""}${qs.length} planned</div>
         </div>
         <div class="step-list">
-          ${ps.map(t=>`<div class="step practice">
-            <button class="step-trigger${t.lastMarkedAt===todayLocal()?" marked":""}" data-mark="${t.id}" title="Mark it">✓</button>
-            <div class="step-copy">
-              <h4>${esc(t.title)}<span class="practice-tag">Practice</span></h4>
-              ${t.anchor?`<div class="step-anchor">${esc(t.anchor)}</div>`:""}
-              <div class="step-marks">${marksLine(t)}</div>
-            </div>
-            <button class="icon-btn" data-edit-step="${t.id}" title="Edit practice">✎</button>
-          </div>`).join("")}
-          ${qs.length?qs.map(t=>`<div class="step">
-            <button class="step-trigger" data-complete="${t.id}" title="Mark as done">→</button>
-            <div class="step-copy"><h4>${esc(t.title)}</h4><div class="step-meta">${stepContext(t)}</div></div>
-            <button class="icon-btn" data-edit-step="${t.id}" title="Edit step">✎</button>
-          </div>`).join(""):ps.length?"":`
-            <div class="step-empty">
-              <div class="empty-title">The road is clear.</div>
-              <p>Plan a step for when you're ready to take it.</p>
-            </div>`}
+          ${ps.map(t=>stepRow(t,{meta:marksLine(t)})).join("")}
+          ${qs.length?qs.map(t=>stepRow(t,{meta:stepContext(t)})).join(""):ps.length?"":
+            emptyState("The road is clear.","Plan a step for when you're ready to take it.")}
         </div>
         <div class="add-step-row">
           <input id="quickStepInput" placeholder="What is one small step you could take?">
@@ -887,13 +889,13 @@ function openStory(id){
     </div>
 
     <section class="panel journey">
-      <div class="section-title"><h2>Journey</h2><div class="count-label">${history.length} step${history.length===1?"":"s"} taken</div></div>
+      <div class="section-title"><h2>Journey</h2><div class="count-label">${plural(history.length,"step")} taken</div></div>
       <div class="journey-track">
         ${history.length?history.map(a=>`<div class="journal-entry">
           <div class="journal-date">${humanDate(a.date)}</div>
           <div class="journal-note">${esc(a.note)}</div>
           <div class="journal-meta">${a.kind==="practice"?"Practice marked":a.taskId?"Step completed":"Activity logged"}<button class="icon-btn" data-edit-journey="${a.id}" title="Edit entry">✎</button></div>
-        </div>`).join(""):`<div class="step-empty"><div class="empty-title">Your Journey begins with a step.</div><p>Complete a step or log something you did.</p></div>`}
+        </div>`).join(""):emptyState("Your Journey begins with a step.","Complete a step or log something you did.")}
       </div>
     </section>`;
 
@@ -987,7 +989,7 @@ function openEditChapter(id){
     const affected=state.goals.filter(g=>g.subQuestId===id).length;
     confirmDelete("Delete Chapter",
       `Delete <strong>${esc(c.title)}</strong>?`+
-      (affected?` Its ${affected} goal${affected===1?"":"s"} will stay in this Story, just without a chapter.`:""),
+      (affected?` Its ${plural(affected,"goal")} will stay in this Story, just without a chapter.`:""),
       ()=>{
         state.goals.forEach(g=>{if(g.subQuestId===id)g.subQuestId=null});
         state.subs=state.subs.filter(x=>x.id!==id);
@@ -1017,7 +1019,7 @@ function openEditGoal(id){
     const affected=state.tasks.filter(t=>t.goalId===id).length;
     confirmDelete("Delete Goal",
       `Delete <strong>${esc(g.title)}</strong>?`+
-      (affected?` Its ${affected} step${affected===1?"":"s"} will stay in this Story, just without a goal.`:""),
+      (affected?` Its ${plural(affected,"step")} will stay in this Story, just without a goal.`:""),
       ()=>{
         state.tasks.forEach(t=>{if(t.goalId===id)t.goalId=null});
         state.goals=state.goals.filter(x=>x.id!==id);
@@ -1092,8 +1094,8 @@ async function deleteStory(id){
   };
   confirmDelete("Delete Story",
     `Delete <strong>${esc(story.name)}</strong> and everything in it: `+
-    `${counts.subs} chapter${counts.subs===1?"":"s"}, ${counts.goals} goal${counts.goals===1?"":"s"}, `+
-    `${counts.tasks} step${counts.tasks===1?"":"s"} and ${counts.acts} journey entr${counts.acts===1?"y":"ies"}. `+
+    `${plural(counts.subs,"chapter")}, ${plural(counts.goals,"goal")}, `+
+    `${plural(counts.tasks,"step")} and ${counts.acts} journey entr${counts.acts===1?"y":"ies"}. `+
     `This cannot be undone from inside the app, so a backup is saved first.`,
     async()=>{
       await writeBackup(JSON.parse(JSON.stringify(state)),"pre-delete-story");
