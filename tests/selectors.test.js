@@ -12,7 +12,7 @@ module.exports = function (t) {
   global.state = { stories: [], journey: [], steps: [] };
   global.attRank = { max: 0, active: 1, available: 2, background: 3 };
 
-  loadGlobal(["journeyIn", "latest", "activeStories"]);
+  loadGlobal(["latest", "activeStories"]);
 
   /* The implementations as they were before the refactor. */
   const oldActs = (id) =>

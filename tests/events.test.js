@@ -17,7 +17,7 @@ module.exports = function (t) {
   loadGlobal([
     "esc", "localDate", "todayLocal", "shiftDate", "humanDate",
     "eventIsAllDay", "eventStartDate", "eventStartTime", "eventLastDate",
-    "eventSortKey", "HORIZON_DAYS", "utcDateOf", "daySpan",
+    "HORIZON_DAYS", "utcDateOf", "daySpan",
     "eventRule", "eventOccurrences", "occurrencesBetween", "occurrencesOn",
     "eventsAhead", "journeyBehind", "monthCells", "monthLabel", "shiftMonth",
     "aheadDate", "eventWhen", "activeStories", "storyById"

@@ -703,7 +703,6 @@ function flatSteps(activeIds){
   if(t.lastMarkedAt===todayLocal())return `Marked today · ${n} in all`;
   return `${plural(n,"mark")} · last ${humanDate(t.lastMarkedAt||todayLocal())}`;
 }
-function journeyIn(id){return state.journey.filter(x=>x.storyId===id).sort((a,b)=>b.date.localeCompare(a.date))}
 /* Events follow Google Calendar's event resource shape, so an .ics
    export, and any later sync, stay a mapping rather than a translation.
    The consequence is that an event says summary and description where
@@ -718,7 +717,6 @@ function eventLastDate(e){
   if(e.end&&e.end.dateTime)return e.end.dateTime.slice(0,10);
   return eventStartDate(e);
 }
-function eventSortKey(e){return eventStartDate(e)+" "+(eventStartTime(e)||"00:00")}
 /* How far either way the app will expand a repeating event. A rule can
    run forever; a view cannot. */
 const HORIZON_DAYS=365;
@@ -1228,7 +1226,7 @@ function deleteMessage(kind,id){
   const rule=DELETE_RULES[kind];
   const subject=rule.find(id);
   if(!subject)return "";
-  const impact=rule.impact(id);
+  const impact=deleteImpact(kind,id);
   let msg=`Delete <strong>${esc(rule.name(subject))}</strong>`;
   if(impact.removed){
     const r=impact.removed;

@@ -105,6 +105,39 @@ module.exports = function (t) {
     undefined_.length === 0
   );
 
+  /* --- things that must correspond ---------------------------------- */
+  /* Most of this session's bugs were relationships going stale rather
+     than functions being wrong: a function whose last caller went away,
+     a class whose rule never existed, a handler for an attribute nobody
+     renders. Each is invisible reading either side on its own, and
+     mechanical to check across both. */
+
+  /* eventIsPast, journeyIn and eventSortKey each outlived their last
+     caller and were kept looking alive by a test loading them, which is
+     worse than plain dead code: the suite appears to cover something the
+     app never runs. */
+  const declared = [...js.matchAll(/^(?:async )?function ([a-zA-Z_$][\w$]*)/gm)].map((m) => m[1]);
+  const orphaned = declared.filter((n) => (js.match(new RegExp("\\b" + n + "\\b", "g")) || []).length <= 1);
+  t.ok(
+    orphaned.length === 0
+      ? `all ${declared.length} functions are called somewhere`
+      : `functions with no caller: ${orphaned.join(", ")}`,
+    orphaned.length === 0
+  );
+
+  /* The other half of the same bug: a button rendered with a data-
+     attribute that nothing in bindMain listens for does nothing at all,
+     silently. */
+  const dataRendered = new Set([...html.matchAll(/\sdata-([a-z-]+)=/g)].map((m) => m[1]));
+  const dataHandled = new Set([...js.matchAll(/\[data-([a-z-]+)\]/g)].map((m) => m[1]));
+  const dangling = [...dataRendered].filter((d) => !dataHandled.has(d));
+  t.ok(
+    dangling.length === 0
+      ? `all ${dataRendered.size} data attributes have a handler`
+      : `data attributes nothing listens for: ${dangling.join(", ")}`,
+    dangling.length === 0
+  );
+
   /* A tall modal used to overflow a fixed, centred flex container with
      nothing scrollable, which put the save button off-screen and made
      the longest form in the app impossible to submit. Invisible in any

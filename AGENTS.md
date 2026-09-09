@@ -34,6 +34,8 @@ A change is not finished until all of these are true:
 - Never hide an obsolete class with `display:none`. Remove or rename it.
 - Never store a number the app can derive from records.
 - Never reintroduce the pre-v3 state keys (`quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId`, `taskId`). The state uses the UI's words.
+- When a change makes a function's last caller go away, delete the function; do not leave a test loading it. A test propping up dead code is worse than dead code, because the suite looks like it covers something the app never runs.
+- When a caller violates a function's unstated precondition, fix the function so the precondition is gone rather than patching the call site.
 - Never introduce streaks, badges, points, due dates, or red failure states.
 - Never use an em dash in UI copy. Use a comma.
 - Never reintroduce offset or rotated decoration that needs `overflow:hidden` to stay in its card.
