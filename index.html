@@ -758,8 +758,9 @@ function occurrencesBetween(fromISO,toISO,storyId){
 }
 function occurrencesOn(dateISO){return occurrencesBetween(dateISO,dateISO)}
 /* Behind you only once its last day has passed, so a trip still reads
-   as ahead on its final morning. */
-function eventIsPast(e,today){return eventLastDate(e)<today}
+   as ahead on its final morning. The rule lives in eventsAhead() and
+   journeyBehind(), which both compare against an occurrence's last day.
+*/
 function eventsAhead(today){return occurrencesBetween(today,shiftDate(today,HORIZON_DAYS))}
 /* Past events are Journey entries: both are things that happened on a
    date. Merged rather than converted, so nothing is stored twice and an
@@ -832,13 +833,17 @@ function toast(msg){
 function localDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function todayLocal(){return localDate(new Date())}
 function shiftDate(iso,days){const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+days);return localDate(d)}
-function humanDate(d){
-  const today=new Date(); today.setHours(12,0,0,0);
+/* Reads a date relative to today, in either direction. It used to look
+   only backwards, which made a future date read as "-5 days ago" the
+   moment the calendar let you select one. */
+function humanDate(d,today){
+  const from=new Date((today||todayLocal())+"T12:00:00");
   const date=new Date(d+"T12:00:00");
-  const diff=Math.round((today-date)/86400000);
+  const diff=Math.round((from-date)/86400000);
   if(diff===0)return "Today";
   if(diff===1)return "Yesterday";
-  if(diff<7)return diff+" days ago";
+  if(diff>0&&diff<7)return diff+" days ago";
+  if(diff<0)return aheadDate(d,today||todayLocal());
   return date.toLocaleDateString(undefined,{month:"short",day:"numeric"});
 }
 /* ===== SECTION: views ===== */
@@ -1804,15 +1809,15 @@ function icsDateTime(dt){return dt.replace(/[-:]/g,"").slice(0,15)}
 function icsStamp(now){return (now||new Date()).toISOString().replace(/[-:]/g,"").replace(/\.\d+/,"")}
 function eventToIcs(e,now){
   const L=["BEGIN:VEVENT","UID:"+e.id+"@story-app","DTSTAMP:"+icsStamp(now)];
+  const tz=z=>z?";TZID="+z:"";
   if(eventIsAllDay(e)){
     /* Stored exclusive already, which is what iCalendar wants too, so
        both ends are a copy rather than a calculation. */
     L.push("DTSTART;VALUE=DATE:"+icsDate(e.start.date));
-    L.push("DTEND;VALUE=DATE:"+icsDate(e.end.date));
+    if(e.end&&e.end.date)L.push("DTEND;VALUE=DATE:"+icsDate(e.end.date));
   }else{
-    const tz=z=>z?";TZID="+z:"";
     L.push("DTSTART"+tz(e.start.timeZone)+":"+icsDateTime(e.start.dateTime));
-    L.push("DTEND"+tz(e.end.timeZone)+":"+icsDateTime(e.end.dateTime));
+    if(e.end&&e.end.dateTime)L.push("DTEND"+tz(e.end.timeZone)+":"+icsDateTime(e.end.dateTime));
   }
   L.push("SUMMARY:"+icsEscape(e.summary));
   if(e.location)L.push("LOCATION:"+icsEscape(e.location));
@@ -1833,15 +1838,15 @@ function icsFilename(e){
 }
 async function exportEventIcs(id){
   const e=state.events.find(x=>x.id===id); if(!e)return;
-  await deliverFile(icsCalendar([e]),icsFilename(e),"text/calendar",e.summary);
+  await deliverFile(icsCalendar([e]),icsFilename(e),"text/calendar",e.summary,"calendar");
 }
 async function exportCalendarIcs(){
   if(!state.events.length){toast("No events to export");return}
-  await deliverFile(icsCalendar(state.events),icsFilename(null),"text/calendar","Story calendar");
+  await deliverFile(icsCalendar(state.events),icsFilename(null),"text/calendar","Story calendar","calendar");
 }
 /* Three routes, because a blocked download on mobile looks exactly like
    a working one. Shared by the JSON backup and the .ics export. */
-async function deliverFile(payload,filename,mime,title){
+async function deliverFile(payload,filename,mime,title,kind){
   // 1. Share sheet. Most reliable route on Android: lets the file go
   //    straight to Drive, Files, email etc.
   try{
@@ -1866,7 +1871,7 @@ async function deliverFile(payload,filename,mime,title){
 
   // 3. Always offer the raw text too. This is the one route that cannot
   //    fail.
-  showExportFallback(payload,filename);
+  showExportFallback(payload,filename,kind);
 }
 async function exportData(){
   state.exportedAt=new Date().toISOString();
@@ -1875,10 +1880,13 @@ async function exportData(){
   renderStorageStatus();
 }
 
-function showExportFallback(payload,filename){
-  showModal("Your data",`
+function showExportFallback(payload,filename,kind){
+  const isBackup=kind!=="calendar";
+  showModal(isBackup?"Your data":"Your calendar",`
     <p style="margin:0 0 6px;font-size:14px">A download of <strong>${esc(filename)}</strong> was started. Check your Downloads.</p>
-    <p style="margin:0 0 10px;font-size:14px;color:var(--muted)">If nothing downloaded, copy the text below and save it somewhere safe. This is your complete Story, and it can be pasted back in using Restore.</p>
+    <p style="margin:0 0 10px;font-size:14px;color:var(--muted)">${isBackup
+      ?"If nothing downloaded, copy the text below and save it somewhere safe. This is your complete Story, and it can be pasted back in using Restore."
+      :"If nothing downloaded, copy the text below and save it as a .ics file. It opens in Google Calendar or any other calendar app. It is not a Story backup and cannot be pasted into Restore."}</p>
     <textarea id="exportText" readonly style="width:100%;height:140px;font-family:monospace;font-size:11px">${esc(payload)}</textarea>
     <div class="modal-footer"><button class="btn" id="cancelModal">Close</button><button class="btn primary" id="copyExport">Copy to clipboard</button></div>`);
   document.getElementById("copyExport").onclick=async()=>{

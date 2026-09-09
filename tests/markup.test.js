@@ -8,7 +8,20 @@ const { loadGlobal } = require("./harness");
 
 module.exports = function (t) {
   global.state = { steps: [], journey: [], goals: [], chapters: [] };
-  loadGlobal(["esc", "localDate", "todayLocal", "plural", "emptyState", "stepRow"]);
+  loadGlobal(["esc", "localDate", "todayLocal", "aheadDate", "humanDate", "plural", "emptyState", "stepRow"]);
+
+  /* humanDate used to look only backwards, so a future date came out as
+     "-5 days ago" as soon as the calendar let you select one. */
+  t.section("a date reads relative to today, in both directions");
+  const now = "2026-09-09";
+  t.ok("today", humanDate("2026-09-09", now) === "Today");
+  t.ok("yesterday", humanDate("2026-09-08", now) === "Yesterday");
+  t.ok("a few days back", humanDate("2026-09-06", now) === "3 days ago");
+  t.ok("further back falls to a date", /Aug/.test(humanDate("2026-08-01", now)));
+  t.ok("tomorrow", humanDate("2026-09-10", now) === "Tomorrow");
+  t.ok("a few days ahead", humanDate("2026-09-12", now) === "In 3 days");
+  t.ok("further ahead falls to a date", /Oct/.test(humanDate("2026-10-20", now)));
+  t.ok("nothing ever reads as a negative", ["2026-09-10", "2026-09-14", "2026-12-01"].every(d => !humanDate(d, now).includes("-")));
 
   t.section("plural");
   t.ok("singular has no s", plural(1, "step") === "1 step");

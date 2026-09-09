@@ -127,6 +127,22 @@ module.exports = function (t) {
   t.section("a short line is left alone");
   t.ok("no stray continuation", !icsFold("SUMMARY:Short").includes("\r\n"));
 
+  /* eventLastDate() supports an event with no end and is tested for it,
+     so the writer must not be less forgiving than the reader. RFC 5545
+     permits DTSTART with no DTEND. */
+  t.section("an event with no end does not break the file");
+  const noEnd = { id: "e5", summary: "Open ended",
+    start: { dateTime: "2026-09-02T19:30:00", timeZone: "Europe/Madrid" }, status: "confirmed" };
+  let blew = null;
+  try { icsCalendar([noEnd], stamp); } catch (e) { blew = e; }
+  t.ok("it does not throw", blew === null);
+  const open_ = parseIcs(icsCalendar([noEnd], stamp))[0];
+  t.ok("the start is still written", open_.DTSTART === "20260902T193000");
+  t.ok("and DTEND is simply absent", open_.DTEND === undefined);
+
+  const noEndAllDay = { id: "e6", summary: "Open day", start: { date: "2026-09-02" }, status: "confirmed" };
+  t.ok("the same for an all-day event", parseIcs(icsCalendar([noEndAllDay], stamp))[0].DTEND === undefined);
+
   t.section("filenames");
   t.ok("an event is named after itself", icsFilename({ summary: "Sara Carlos Wedding" }) === "sara-carlos-wedding.ics");
   t.ok("punctuation is stripped", icsFilename({ summary: "Lunch; with Nicole!" }) === "lunch-with-nicole.ics");

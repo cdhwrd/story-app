@@ -17,7 +17,7 @@ module.exports = function (t) {
   loadGlobal([
     "esc", "localDate", "todayLocal", "shiftDate", "humanDate",
     "eventIsAllDay", "eventStartDate", "eventStartTime", "eventLastDate",
-    "eventSortKey", "eventIsPast", "HORIZON_DAYS", "utcDateOf", "daySpan",
+    "eventSortKey", "HORIZON_DAYS", "utcDateOf", "daySpan",
     "eventRule", "eventOccurrences", "occurrencesBetween", "occurrencesOn",
     "eventsAhead", "journeyBehind", "monthCells", "monthLabel", "shiftMonth",
     "aheadDate", "eventWhen", "activeStories", "storyById"
@@ -63,12 +63,17 @@ module.exports = function (t) {
   t.ok("crossing a year backwards", eventLastDate(allDay("e7", "x", "2026-12-29", "2026-12-31")) === "2026-12-31");
   t.ok("a leap day survives", eventLastDate(allDay("e8", "x", "2028-02-27", "2028-02-29")) === "2028-02-29");
 
+  /* The rule is that an event is behind you only once its last day has
+     passed, so a trip does not read as history while you are still on
+     it. It is asserted through the two functions that implement it. */
   t.section("behind means the last day has passed");
-  t.ok("ahead the day before it starts", eventIsPast(trip, "2026-09-24") === false);
-  t.ok("still ahead on the first morning", eventIsPast(trip, "2026-09-25") === false);
-  /* A trip should not read as history while you are still on it. */
-  t.ok("still ahead on the last morning", eventIsPast(trip, "2026-09-27") === false);
-  t.ok("behind the next day", eventIsPast(trip, "2026-09-28") === true);
+  global.state = { stories: [], journey: [], events: [trip] };
+  const aheadOn = (d) => eventsAhead(d).some((o) => o.rec.id === "e3");
+  const behindOn = (d) => journeyBehind(null, d).some((x) => x.rec.id === "e3");
+  t.ok("ahead the day before it starts", aheadOn("2026-09-24") && !behindOn("2026-09-24"));
+  t.ok("still ahead on the first morning", aheadOn("2026-09-25"));
+  t.ok("still ahead on the last morning", aheadOn("2026-09-27") && !behindOn("2026-09-27"));
+  t.ok("behind the next day", behindOn("2026-09-28") && !aheadOn("2026-09-28"));
 
   t.section("what is ahead, in order");
   global.state = {

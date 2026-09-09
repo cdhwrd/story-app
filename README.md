@@ -341,7 +341,7 @@ Timeline is one spine: events **ahead**, then everything **behind**, which is th
 
 - **A past event is a Journey entry**, because both are things that happened on a date. Merged at read time, never converted, so nothing is stored twice and the record stays an event: still editable as one, still exportable as one.
 - **An event is behind you only once its last day has passed**, so a trip still reads as ahead on its final morning.
-- **Nothing counts down and nothing is overdue.** An event is a fact on a date, not a due date. `aheadDate()` says Today, Tomorrow, In 3 days, then a plain date.
+- **Nothing counts down and nothing is overdue.** An event is a fact on a date, not a due date. `humanDate()` reads a date relative to today in either direction: Today, Yesterday, 3 days ago, Tomorrow, In 3 days, then a plain date. It never counts down to anything.
 
 Calendar is the month a timeline cannot show: shape, spacing, how full a week is. Same records, laid out rather than listed. Weeks start on Monday, a month takes five rows or six as it needs (an empty trailing row reads as missing content, not as spare space), and tapping a day lists it underneath. A multi-day event appears on every day it covers, not only its first.
 
@@ -379,6 +379,7 @@ Things the app does not have, and should not grow. Each was considered and rejec
 - What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
 - The Story page is macro; there is no focused "what do I do now" view
 - `completedAt` is date-only while `createdAt` is a full ISO timestamp
+- An `.ics` event with no `DTEND` is written without one, which the spec allows but some importers read as zero length
 - `.ics` export emits `TZID` without a matching `VTIMEZONE` component. Google and Apple both accept this; a strict parser may not
 - `.ics` is export only. Story cannot read a calendar file back in
 - Reminders are stored nowhere, so nothing is exported for them either
