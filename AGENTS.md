@@ -5,40 +5,42 @@ Story: a single-user, local-first life navigator. No build step, no framework. T
 ## Commands
 
 ```
-node tests/run.js          # the whole suite. No install step needed.
-git fetch origin           # always, before assuming repo state
+node tests/run.js     # the whole suite. No install step.
+git fetch origin      # before assuming repo state. Other sessions push here.
 ```
 
-There is nothing to build and nothing to install. Deploy is `git push` to `main`; GitHub Pages redeploys in about a minute.
+Deploy is `git push` to `main`; GitHub Pages redeploys in about a minute.
 
 ## Before changing anything
 
-1. `git fetch origin` and compare with `origin/main`. Other sessions push here.
-2. Run `node tests/run.js`. It must be green before you start.
-3. Read the README section for what you are touching (table below).
+`git fetch origin`, compare against `origin/main`, and run the suite. It must be green before you start.
 
 ## Done criteria
-
-A change is not finished until all of these are true:
 
 - `node tests/run.js` passes
 - new logic in the derivations band has tests
 - README **Current status** and **Known open items** reflect reality
 - the owner has been reminded to delete the token
 
+## The suite is the spec
+
+`tests/conventions.test.js` fails the build on duplicate CSS selectors, classes defined but never rendered, classes rendered with no rule, inline styles, functions with no caller, `data-` attributes with no handler, em dashes in UI copy, and the pre-v3 state keys. Those rules are not restated below; run the suite instead of memorising them.
+
+Three ratchets hold a ceiling that may only be lowered. Never raise one to make a change fit.
+
 ## Never
 
-- Never change persistence, migration, restore or delete code without a test.
+- Never change persistence, migration, restore or delete code without writing a test first.
 - Never commit a file nothing references.
-- Never add a second definition of a CSS selector. Edit the existing rule.
-- Never hide an obsolete class with `display:none`. Remove or rename it.
+- Never hide an obsolete class with `display:none`. Remove or rename it. The suite catches an unused class, not a hidden one.
 - Never store a number the app can derive from records.
-- Never reintroduce the pre-v3 state keys (`quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId`, `taskId`). The state uses the UI's words.
-- When a change makes a function's last caller go away, delete the function; do not leave a test loading it. A test propping up dead code is worse than dead code, because the suite looks like it covers something the app never runs.
-- When a caller violates a function's unstated precondition, fix the function so the precondition is gone rather than patching the call site.
 - Never introduce streaks, badges, points, due dates, or red failure states.
-- Never use an em dash in UI copy. Use a comma.
 - Never reintroduce offset or rotated decoration that needs `overflow:hidden` to stay in its card.
+- When a caller violates a function's unstated precondition, fix the function so the precondition is gone rather than patching the call site.
+
+## Why the constraints exist
+
+The app records what happened, never what did not. Most of the rules above follow from that one: no due dates, no streaks, no absence indicators, and ordering that surfaces momentum rather than the stalest item. A choice that looks arbitrary usually follows from it. Nothing here should measure the gap between what was done and what could have been.
 
 ## Finding your way around index.html
 
@@ -52,7 +54,7 @@ Grep for the marker. Line numbers go stale.
 | `SECTION: derivations` | pure functions of state. Testable, and tested |
 | `SECTION: views` | render functions |
 | `SECTION: modals` | edit and confirm dialogs |
-| `SECTION: backup` | export, import, restore, Google Drive |
+| `SECTION: backup` | export, import, restore, Google Drive, `.ics` |
 
 ## Where to read why
 
@@ -82,10 +84,6 @@ git push "https://<token>@github.com/cdhwrd/story-app.git" main
 - The token needs **Contents: read and write**.
 - Touching `.github/workflows/` also needs **Workflows: read and write**, or GitHub rejects the whole push, including for a comment change. Leave workflow files alone unless asked.
 - `git pull` needs `--no-rebase` here; the repo has no pull strategy configured.
-
-## Why the constraints exist
-
-The app records what happened, never what did not. Most of the rules above follow from that one: no due dates, no streaks, no absence indicators, and ordering that surfaces momentum rather than the stalest item. A choice that looks arbitrary usually follows from it. Nothing here should measure the gap between what was done and what could have been.
 
 ## Scope
 
