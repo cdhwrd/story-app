@@ -49,6 +49,7 @@ Backup is yours to hold, in two forms, both optional:
 
 ```text
 index.html              the entire app: styles, markup and script inline
+rrule-2.8.1.min.js      vendored, the only dependency (see Why one file)
 manifest.json           PWA metadata
 service-worker.js       network-first for the shell, cache-first for assets
 tests/                  no-dependency test suite, reads index.html directly
@@ -68,6 +69,8 @@ Deliberate, not an accident of growth.
 - **Atomic deploy.** The styles, markup and script that ship together are always the versions that were tested together.
 - **The service worker makes splitting risky.** It is network-first for the HTML shell but cache-first for everything else, so a separate `app.js` could be served stale against a fresh `index.html`. Splitting means reworking the caching strategy in the same change.
 - **No build step**, which keeps the app editable from anywhere and removes a whole category of tooling failure.
+
+**One vendored exception.** `rrule-2.8.1.min.js` (46KB, 13.6KB gzipped, UMD, no build step) expands recurrence rules. The argument against splitting is that a stale cached file could be served against a fresh `index.html`; a versioned third-party file cannot drift, because upgrading changes its name and busts the cache by itself. It is precached by the service worker alongside the shell. Recurrence is the one part of a calendar worth a dependency: `BYDAY`, `BYSETPOS`, `COUNT` versus `UNTIL` and DST are where hand-rolled code goes quietly wrong.
 
 The cost is that tests need `tests/harness.js` to pull functions out of the inline script. That is a fair price. If the file passes roughly 2500 lines, split `SECTION: backup` out first, since it is the largest band with the least coupling, and change the service worker in the same commit.
 
@@ -112,13 +115,17 @@ Every item also carries `storyId`, so a Story's contents can be fetched without 
 | Goal | `goals` | `id`, `storyId`, `chapterId`, `title`, `detail`, `status` |
 | Step | `steps` | `id`, `storyId`, `goalId`, `title`, `status`, `completedAt`, `mode`, `anchor`, `lastMarkedAt` |
 | Journey entry | `journey` | `id`, `storyId`, `stepId`, `note`, `date`, `kind` |
-| Event | `events` | `id`, `storyId`, `summary`, `description`, `location`, `start`, `end`, `status` |
+| Event | `events` | `id`, `storyId`, `summary`, `description`, `location`, `start`, `end`, `recurrence`, `status` |
 
 Relationships are **real foreign key fields**, not a generic tag or polymorphic relation system.
 
 **Events are the one deliberate exception to the rule below.** They follow Google Calendar's event resource shape verbatim, so an `.ics` export and any later sync stay a mapping rather than a translation: `summary` not title, `description` not note, `start`/`end` as `{date}` or `{dateTime, timeZone}`. Alignment, not replication; there are no attendees, no VTIMEZONE and no per-occurrence overrides.
 
 Two consequences worth knowing. All-day `end` is **exclusive**, the day after the last day, as Google has it, so a trip on the 25th to the 27th stores `end: 2026-09-28`; nothing a person reads touches `end` directly, it goes through `eventLastDate()`. And times are local wall clock plus an IANA zone, never `toISOString()`.
+
+**Recurrence is expanded at read time and never stored**, the same way mark counts are derived. A birthday is one record, so editing it moves every occurrence. An *occurrence* is `{date, last, rec}`: the record plus the days it actually lands on. Expansion runs through UTC and comes back through `utcDateOf()`, because a repeating event is a wall-clock idea (a birthday is the 16th everywhere) and local time would drift it across a DST boundary. Views expand at most a year either way; a rule can run forever, a view cannot.
+
+The modal offers Never, daily, weekly, monthly and yearly. A rule it cannot express, from an import or a future version, comes back as **Custom** and is written out untouched rather than downgraded to the nearest option.
 
 **The state uses the UI's words, and only those.** A conventions test fails the build if `quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId` or `taskId` appear anywhere except the two places that must name them: `MIGRATIONS[3]`, and `PRE_V3_LISTS`, which is what lets an older export still restore.
 
@@ -288,8 +295,7 @@ MVP prototype in daily use. The core Story → Chapter → Goal → Step → Jou
 
 Product, roughly in order:
 
-1. **Recurring events.** Yearly birthdays, monthly rent. This needs `RRULE` expansion, which is the one part of the calendar worth taking a dependency for: `rrule.js` (46KB, 13.6KB gzipped, UMD, no build step) rather than hand-rolling `BYDAY`, `BYSETPOS`, `COUNT` versus `UNTIL` and DST. It is not vendored yet, because a library nothing calls is dead code. It lands wired up. The `recurrence` field is already in the record shape.
-2. **`.ics` export.** One event at a time, using the event id as `UID` so re-exporting updates rather than duplicating. Written by hand, roughly 40 lines; `ical.js` is only needed for parsing arbitrary calendars. A round-trip test, event → `.ics` → parse → identical, is the real guarantee of Google compatibility. One-way and a copy; no OAuth, no sync.
+1. **`.ics` export.** One event at a time, using the event id as `UID` so re-exporting updates rather than duplicating. Written by hand, roughly 40 lines; `ical.js` is only needed for parsing arbitrary calendars. A round-trip test, event → `.ics` → parse → identical, is the real guarantee of Google compatibility. One-way and a copy; no OAuth, no sync.
 3. **Deleted Stories keep their Journey entries.** Blocked until the timeline exists, because every current view finds entries by Story, so preserved entries would be invisible. Denormalise the Story name onto them as text.
 4. **A derived line on the Story page**, stating something true about the record ("part of your life since March, 14 marks"). Needs a Story start date; `createdAt` exists on newer Stories, older ones may need backfilling.
 5. **The return band.** After a quiet stretch, home opens with something the person wrote and how long the Story has existed. Triggered off the date of the most recent Journey entry, never off a stored "last opened", so it responds to the story being quiet rather than tracking the person. No call to action, never a modal, never mentions the gap.
@@ -316,7 +322,7 @@ The look is editorial and printed: cream paper, warm black ink, serif for anythi
 
 ### Home views
 
-Home has three views: **Stories** (the default), **Steps** and **Timeline**. The tabs stay as the visible affordance, and a horizontal swipe moves between them in that order. The swipe only fires when the gesture is clearly horizontal, so it never steals a scroll.
+Home has four views: **Stories** (the default), **Steps**, **Timeline** and **Calendar**. The tabs stay as the visible affordance, and a horizontal swipe moves between them in that order. The swipe only fires when the gesture is clearly horizontal, so it never steals a scroll.
 
 Steps is a flat list of every open one-off step across every active Story, newest first, each tagged with the Story it belongs to. No grouping and no counts, so it reads as what's in motion rather than as a backlog.
 
@@ -329,6 +335,8 @@ Timeline is one spine: events **ahead**, then everything **behind**, which is th
 - **A past event is a Journey entry**, because both are things that happened on a date. Merged at read time, never converted, so nothing is stored twice and the record stays an event: still editable as one, still exportable as one.
 - **An event is behind you only once its last day has passed**, so a trip still reads as ahead on its final morning.
 - **Nothing counts down and nothing is overdue.** An event is a fact on a date, not a due date. `aheadDate()` says Today, Tomorrow, In 3 days, then a plain date.
+
+Calendar is the month a timeline cannot show: shape, spacing, how full a week is. Same records, laid out rather than listed. Weeks start on Monday, a month takes five rows or six as it needs (an empty trailing row reads as missing content, not as spare space), and tapping a day lists it underneath. A multi-day event appears on every day it covers, not only its first.
 
 ### Deliberately removed
 
@@ -364,7 +372,6 @@ Things the app does not have, and should not grow. Each was considered and rejec
 - What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
 - The Story page is macro; there is no focused "what do I do now" view
 - `completedAt` is date-only while `createdAt` is a full ISO timestamp
-- Events do not recur yet, so a birthday or a monthly bill has to be entered each time
+- Recurring events cannot skip or move a single occurrence. `EXDATE` and `RECURRENCE-ID` are not supported, so a cancelled week means editing the rule
 - Story cannot fire a reminder. An installed PWA cannot schedule a notification for a future date on Android: Notification Triggers never shipped, and web notifications only fire while something is running. A reminder can be stored and exported so Google fires it, but Story itself will never buzz your phone
-- Events have no month grid, only the timeline
 - "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries

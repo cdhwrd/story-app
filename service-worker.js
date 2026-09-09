@@ -1,5 +1,8 @@
-const CACHE_NAME = "story-app-v3";
-const APP_SHELL = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CACHE_NAME = "story-app-v4";
+/* rrule is versioned in its filename, so cache-first is correct for it:
+   upgrading changes the name and busts the cache by itself. This is the
+   one thing alongside index.html, and the reason it is safe. */
+const APP_SHELL = ["./index.html", "./rrule-2.8.1.min.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

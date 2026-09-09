@@ -222,6 +222,16 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .event-title{font-family:var(--serif);font-size:18px;margin:2px 0 6px}
 .event-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
 .timeline-add{margin:0 0 18px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;font-family:var(--serif);font-size:18px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:0 0 18px}
+.cal-dow{text-align:center;font-size:11px;letter-spacing:.08em;color:var(--muted);padding:4px 0}
+.cal-cell{display:flex;flex-direction:column;align-items:stretch;gap:2px;min-height:62px;padding:4px;border:1px solid var(--rule);background:var(--paper);font:inherit;text-align:left;cursor:pointer;overflow:hidden}
+.cal-out{opacity:.35}
+.cal-today .cal-day{background:var(--ink);color:var(--paper);border-radius:50%}
+.cal-sel{border-color:var(--ink);border-width:2px}
+.cal-day{font-size:12px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
+.cal-chip{font-size:10px;line-height:1.25;background:var(--rule);padding:1px 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-more{font-size:10px;color:var(--muted)}
 .view-tab{font-family:var(--sans);font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;padding:8px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink);cursor:pointer}
 .view-tab.on{background:var(--ink);color:var(--paper2)}
 .flat-steps{margin-bottom:22px}
@@ -436,6 +446,7 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
 <div class="toast" id="toast"></div>
 <div class="step-stamp" id="stepStamp"><strong>STEP TAKEN</strong></div>
 
+<script src="rrule-2.8.1.min.js"></script>
 <script>
 /* ===== SECTION: persistence ===== */
 const SCHEMA_VERSION = 3;
@@ -611,6 +622,7 @@ let currentStory = null;
 /* Which home view is showing. Deliberately not persisted: the app should
    open on Stories, not on a list of everything outstanding. */
 let homeView = "stories";
+let calCursor = null, calPicked = null;
 
 async function loadState(){
   db=await openDB();
@@ -705,22 +717,80 @@ function eventLastDate(e){
   return eventStartDate(e);
 }
 function eventSortKey(e){return eventStartDate(e)+" "+(eventStartTime(e)||"00:00")}
+/* How far either way the app will expand a repeating event. A rule can
+   run forever; a view cannot. */
+const HORIZON_DAYS=365;
+function utcDateOf(d){return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`}
+function daySpan(e){return Math.round((new Date(eventLastDate(e)+"T12:00:00")-new Date(eventStartDate(e)+"T12:00:00"))/86400000)}
+/* Recurrence is expanded at read time and never stored, the same way
+   mark counts are derived rather than kept. A birthday stays one
+   record, so editing it moves every occurrence at once.
+
+   Dates go through rrule in UTC and come back out through
+   utcDateOf(). A repeating event is a wall-clock idea: a birthday is
+   the 16th everywhere, and running it through local time would drift it
+   across a DST boundary. */
+function eventRule(e){
+  if(!e.recurrence||!e.recurrence.length)return null;
+  const [y,m,d]=eventStartDate(e).split("-").map(Number);
+  const [hh,mi]=(eventStartTime(e)||"00:00").split(":").map(Number);
+  try{return rrule.rrulestr(e.recurrence.join("\n"),{dtstart:new Date(Date.UTC(y,m-1,d,hh,mi))})}
+  catch(err){return null}
+}
+/* An occurrence is the record plus the dates it actually lands on. */
+function eventOccurrences(e,fromISO,toISO){
+  const span=daySpan(e),rule=eventRule(e);
+  if(!rule){
+    const start=eventStartDate(e),last=eventLastDate(e);
+    return last>=fromISO&&start<=toISO?[{date:start,last,rec:e}]:[];
+  }
+  /* Widened by the span, so an occurrence already running when the
+     window opens is not missed. */
+  return rule.between(new Date(shiftDate(fromISO,-span)+"T00:00:00Z"),new Date(toISO+"T23:59:59Z"),true)
+    .map(d=>{const start=utcDateOf(d);return {date:start,last:shiftDate(start,span),rec:e}});
+}
+function occurrencesBetween(fromISO,toISO,storyId){
+  return state.events.filter(e=>!storyId||e.storyId===storyId)
+    .flatMap(e=>eventOccurrences(e,fromISO,toISO))
+    .filter(o=>o.last>=fromISO&&o.date<=toISO)
+    .sort((a,b)=>(a.date+(eventStartTime(a.rec)||"00:00")).localeCompare(b.date+(eventStartTime(b.rec)||"00:00")));
+}
+function occurrencesOn(dateISO){return occurrencesBetween(dateISO,dateISO)}
 /* Behind you only once its last day has passed, so a trip still reads
    as ahead on its final morning. */
 function eventIsPast(e,today){return eventLastDate(e)<today}
-function eventsAhead(today){
-  return state.events.filter(e=>!eventIsPast(e,today))
-    .sort((a,b)=>eventSortKey(a).localeCompare(eventSortKey(b)));
-}
+function eventsAhead(today){return occurrencesBetween(today,shiftDate(today,HORIZON_DAYS))}
 /* Past events are Journey entries: both are things that happened on a
    date. Merged rather than converted, so nothing is stored twice and an
    event stays an event, still editable and exportable as one. */
 function journeyBehind(storyId,today){
   const mine=x=>!storyId||x.storyId===storyId;
   return state.journey.filter(mine).map(a=>({type:"journey",date:a.date,rec:a}))
-    .concat(state.events.filter(e=>mine(e)&&eventIsPast(e,today))
-      .map(e=>({type:"event",date:eventLastDate(e),rec:e})))
+    .concat(occurrencesBetween(shiftDate(today,-HORIZON_DAYS),shiftDate(today,-1),storyId)
+      .filter(o=>o.last<today)
+      .map(o=>({type:"event",date:o.last,rec:o.rec})))
     .sort((a,b)=>b.date.localeCompare(a.date)||b.type.localeCompare(a.type));
+}
+/* Six weeks is the most a month can touch, but most need five, and an
+   empty trailing row reads as missing content rather than as spare
+   space. Weeks start on Monday. */
+function monthCells(year,month){
+  const first=new Date(Date.UTC(year,month-1,1));
+  const shift=(first.getUTCDay()+6)%7;
+  const days=new Date(Date.UTC(year,month,0)).getUTCDate();
+  const cells=[];
+  for(let i=0;i<Math.ceil((shift+days)/7)*7;i++){
+    const d=new Date(Date.UTC(year,month-1,1-shift+i));
+    cells.push({date:utcDateOf(d),inMonth:d.getUTCMonth()===month-1});
+  }
+  return cells;
+}
+function monthLabel(year,month){
+  return new Date(Date.UTC(year,month-1,1)).toLocaleDateString(undefined,{month:"long",year:"numeric",timeZone:"UTC"});
+}
+function shiftMonth(year,month,by){
+  const d=new Date(Date.UTC(year,month-1+by,1));
+  return {year:d.getUTCFullYear(),month:d.getUTCMonth()+1};
 }
 function latest(id){
   let d="";
@@ -803,7 +873,52 @@ function renderHome(){
       <button class="view-tab${homeView==="stories"?" on":""}" data-view="stories">Stories</button>
       <button class="view-tab${homeView==="steps"?" on":""}" data-view="steps">Steps</button>
       <button class="view-tab${homeView==="timeline"?" on":""}" data-view="timeline">Timeline</button>
+      <button class="view-tab${homeView==="calendar"?" on":""}" data-view="calendar">Calendar</button>
     </div>`;
+
+  if(homeView==="calendar"){
+    /* The month a timeline cannot show: shape, spacing, how full a week
+       is. Same records, laid out rather than listed. */
+    const today=todayLocal();
+    if(!calCursor)calCursor={year:Number(today.slice(0,4)),month:Number(today.slice(5,7))};
+    const {year,month}=calCursor;
+    const cells=monthCells(year,month);
+    const byDay={};
+    for(const o of occurrencesBetween(cells[0].date,cells[cells.length-1].date))
+      for(let d=o.date;d<=o.last;d=shiftDate(d,1))(byDay[d]=byDay[d]||[]).push(o);
+    const picked=calPicked&&byDay[calPicked]?byDay[calPicked]:occurrencesOn(calPicked||today);
+    document.getElementById("main").innerHTML=`
+      ${homeHero("The shape of the month.")}
+      ${toggle}
+      <div class="cal-head">
+        <button class="icon-btn" data-cal="-1" title="Previous month">‹</button>
+        <span>${esc(monthLabel(year,month))}</span>
+        <button class="icon-btn" data-cal="1" title="Next month">›</button>
+      </div>
+      <div class="cal-grid">
+        ${["M","T","W","T","F","S","S"].map(d=>`<div class="cal-dow">${d}</div>`).join("")}
+        ${cells.map(c=>{
+          const list=byDay[c.date]||[];
+          const cls=["cal-cell"];
+          if(!c.inMonth)cls.push("cal-out");
+          if(c.date===today)cls.push("cal-today");
+          if(c.date===(calPicked||today))cls.push("cal-sel");
+          return `<button class="${cls.join(" ")}" data-day="${c.date}">
+            <span class="cal-day">${Number(c.date.slice(8))}</span>
+            ${list.slice(0,2).map(o=>`<span class="cal-chip">${esc(o.rec.summary)}</span>`).join("")}
+            ${list.length>2?`<span class="cal-more">+${list.length-2}</span>`:""}
+          </button>`;
+        }).join("")}
+      </div>
+      <div class="section-rule"><span>${esc(humanDate(calPicked||today))}</span></div>
+      ${picked.length?`<section class="event-list">${picked.map(o=>eventRow(o,today)).join("")}</section>`
+        :emptyState("Nothing that day.","A clear day is not an empty one.",{page:true})}
+      <div class="timeline-add"><button class="btn" id="addEventBtn">＋ Add event</button></div>`;
+    document.getElementById("addEventBtn").onclick=()=>openAddEvent();
+    bindMain();
+    renderStorageStatus();
+    return;
+  }
 
   if(homeView==="timeline"){
     /* One spine. Events ahead, then everything behind, which is the
@@ -927,6 +1042,8 @@ function bindMain(){
   on("[data-open-main]",el=>openStory(el.dataset.openMain));
   on("[data-view]",el=>{homeView=el.dataset.view;renderHome()});
   on("[data-edit-event]",el=>openEditEvent(el.dataset.editEvent));
+  on("[data-cal]",el=>{calCursor=shiftMonth(calCursor.year,calCursor.month,Number(el.dataset.cal));calPicked=null;renderHome()});
+  on("[data-day]",el=>{calPicked=el.dataset.day;renderHome()});
   on("[data-complete]",el=>completeStep(el.dataset.complete));
   on("[data-mark]",el=>markPractice(el.dataset.mark));
   on("[data-edit-chapter]",el=>openEditChapter(el.dataset.editChapter));
@@ -973,18 +1090,18 @@ function aheadDate(d,today){
   if(diff<7)return "In "+diff+" days";
   return new Date(d+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
 }
-function eventWhen(e,today){
-  const start=eventStartDate(e),last=eventLastDate(e);
-  const span=last!==start?" to "+new Date(last+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
-  return aheadDate(start,today)+span+(eventIsAllDay(e)?"":" at "+eventStartTime(e));
+function eventWhen(o,today){
+  const span=o.last!==o.date?" to "+new Date(o.last+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+  return aheadDate(o.date,today)+span+(eventIsAllDay(o.rec)?"":" at "+eventStartTime(o.rec));
 }
-function eventRow(e,today){
-  const story=e.storyId?storyById(e.storyId):null;
+function eventRow(o,today){
+  const e=o.rec,story=e.storyId?storyById(e.storyId):null;
+  const repeats=eventRule(e)?"repeats":"";
   return `<div class="event-row">
-    <div class="event-when">${esc(eventWhen(e,today))}</div>
+    <div class="event-when">${esc(eventWhen(o,today))}</div>
     <div class="event-title">${esc(e.summary)}</div>
     <div class="event-meta">
-      <span>${esc([e.location,story?`${story.icon} ${story.name}`:""].filter(Boolean).join(" · "))}</span>
+      <span>${esc([e.location,story?`${story.icon} ${story.name}`:"",repeats].filter(Boolean).join(" · "))}</span>
       <button class="icon-btn" data-edit-event="${e.id}" title="Edit event">✎</button>
     </div>
   </div>`;
@@ -992,9 +1109,9 @@ function eventRow(e,today){
 /* A past event renders in the Journey's own clothes, because that is
    what it now is. It keeps its own edit route, since the record is
    still an event. */
-function eventAsEntry(e){
+function eventAsEntry(e,when){
   return `<div class="journal-entry">
-    <div class="journal-date">${humanDate(eventLastDate(e))}</div>
+    <div class="journal-date">${humanDate(when)}</div>
     <div class="journal-note">${esc(e.summary)}</div>
     <div class="journal-meta">
       <span>Happened</span>
@@ -1002,7 +1119,7 @@ function eventAsEntry(e){
     </div>
   </div>`;
 }
-function behindEntry(item){return item.type==="event"?eventAsEntry(item.rec):journalEntry(item.rec)}
+function behindEntry(item){return item.type==="event"?eventAsEntry(item.rec,item.date):journalEntry(item.rec)}
 function journalEntry(a){
   const t=a.stepId?state.steps.find(x=>x.id===a.stepId):null;
   const label=a.kind==="practice"?"Practice marked":a.stepId?"Step completed":"Activity logged";
@@ -1428,7 +1545,7 @@ function closeModal(){document.getElementById("modal").classList.remove("open")}
    when the gesture is clearly horizontal, so it never steals a scroll.
    The landing view is still Stories every launch; this changes how you
    move between them, not where the app opens. */
-const HOME_VIEWS=["stories","steps","timeline"];
+const HOME_VIEWS=["stories","steps","timeline","calendar"];
 let touchX=null,touchY=null;
 document.getElementById("main").addEventListener("touchstart",e=>{
   if(e.touches.length!==1){touchX=null;return}
@@ -1499,7 +1616,18 @@ function eventForm(e){
     `<div class="field" id="eventTimes">${timeField("eventStartTime","From",startT)}${timeField("eventEndTime","To",endT)}</div>`+
     textField("eventLocation","Location",e&&e.location?e.location:"","Optional")+
     textField("eventDescription","Notes",e&&e.description?e.description:"","Optional")+
+    repeatField(e)+
     selectField("eventStory","Story",[["","No story"],...activeStories().map(x=>[x.id,`${x.icon} ${x.name}`])],e&&e.storyId?e.storyId:"");
+}
+const REPEATS=[["","Never"],["FREQ=DAILY","Every day"],["FREQ=WEEKLY","Every week"],["FREQ=MONTHLY","Every month"],["FREQ=YEARLY","Every year"]];
+/* A rule that came from elsewhere, or one this UI cannot express, is
+   offered back as Custom and written out untouched. Downgrading someone
+   else's RRULE to the nearest simple option would quietly lose it. */
+function repeatField(e){
+  const current=e&&e.recurrence&&e.recurrence.length?e.recurrence[0].replace(/^RRULE:/,""):"";
+  const known=REPEATS.some(([v])=>v===current);
+  const options=known?REPEATS:[...REPEATS,[current,"Custom"]];
+  return selectField("eventRepeat","Repeats",options,current);
 }
 function bindEventForm(){
   const sel=document.getElementById("eventAllDay"),times=document.getElementById("eventTimes");
@@ -1518,7 +1646,9 @@ function readEventForm(){
      so the export is a copy rather than a calculation. */
   const start=allDay?{date:startD}:{dateTime:`${startD}T${val("eventStartTime")||"09:00"}:00`,timeZone:zone};
   const end=allDay?{date:shiftDate(lastD,1)}:{dateTime:`${lastD}T${val("eventEndTime")||"10:00"}:00`,timeZone:zone};
-  return {summary,start,end,location:val("eventLocation"),description:val("eventDescription"),storyId:val("eventStory")||null};
+  const repeat=val("eventRepeat");
+  return {summary,start,end,location:val("eventLocation"),description:val("eventDescription"),
+    recurrence:repeat?["RRULE:"+repeat]:[],storyId:val("eventStory")||null};
 }
 function openAddEvent(defaultStoryId){
   showModal("Add Event",eventForm(null)+modalFooter("saveEvent","Add event"));
