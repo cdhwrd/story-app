@@ -215,7 +215,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .step h4{margin:0;font-size:14px}
 .step-meta{font-size:11px;color:var(--muted);margin-top:3px}
 .step-anchor{font-size:11px;color:var(--ink);opacity:.72;margin-top:3px;font-style:italic}
-.view-toggle{display:flex;gap:8px;margin:0 0 18px}
+.view-toggle{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
 .event-list{display:flex;flex-direction:column;gap:10px;margin:0 0 18px}
 .event-row{border:2px solid var(--ink);background:var(--paper);padding:12px 14px}
 .event-when{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -935,7 +935,7 @@ function renderHome(){
         :emptyState("Nothing in the diary.","Add anything with a date, a birthday, a trip, an appointment.",{page:true})}
       <div class="timeline-add"><button class="btn" id="addEventBtn">＋ Add event</button></div>
       <div class="section-rule"><span>Behind</span></div>
-      ${behind.length?`<section class="journal">${behind.map(behindEntry).join("")}</section>`
+      ${behind.length?`<section class="journey-track">${behind.map(behindEntry).join("")}</section>`
         :emptyState("Nothing behind you yet.","What you do will gather here.",{page:true})}`;
     document.getElementById("addEventBtn").onclick=()=>openAddEvent();
     bindMain();

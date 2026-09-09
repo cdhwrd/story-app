@@ -87,6 +87,24 @@ module.exports = function (t) {
     unused.length <= MAX_UNUSED_CLASSES
   );
 
+  /* The other direction, which is how a decorative pseudo-element got
+     loose: a timeline used class="journal", which had no rule at all, so
+     the offset dot on .journal-entry escaped its container to the left.
+     A class with no rule is either a typo or a missing style, and both
+     show up as broken layout rather than as nothing. */
+  const rendered = new Set();
+  for (const m of html.matchAll(/class="([^"]*)"/g)) {
+    for (const c of m[1].split(/\s+/)) if (c && !c.includes("$")) rendered.add(c);
+  }
+  const defined = new Set([...css.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
+  const undefined_ = [...rendered].filter((c) => !defined.has(c));
+  t.ok(
+    undefined_.length === 0
+      ? "no rendered class is missing a rule"
+      : `classes with no rule: ${undefined_.join(", ")}`,
+    undefined_.length === 0
+  );
+
   /* Inline styles belong in the stylesheet. The survivors are modal
      bodies and one display toggle. */
   const inline = (html.match(/style="/g) || []).length;
