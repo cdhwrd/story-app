@@ -18,7 +18,7 @@ module.exports = function (t) {
   global.state = { steps: [], journey: [] };
 
   loadGlobal([
-    "todayLocal", "humanDate", "esc", "newId", "plural", "stepsIn", "openStepsIn",
+    "localDate", "todayLocal", "humanDate", "esc", "newId", "plural", "stepsIn", "openStepsIn",
     "practices", "onceSteps", "markCount", "marksLine", "lastMarkFor",
     "markPractice", "completeStep", "uncompleteEntry", "journalEntry"
   ]);

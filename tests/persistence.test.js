@@ -272,7 +272,12 @@ module.exports = async function (t) {
     JSON.stringify(REQUIRED_LISTS) ===
       JSON.stringify(["stories", "chapters", "goals", "steps", "journey"])
   );
-  t.ok("it is a no-op on a complete state", same(withDefaultLists(clone(once)), once));
+  /* `once` is a migrated v2 state, so it predates the events list and
+     gaining one is the backfill working. A state that already has every
+     list must come through untouched. */
+  const complete = { ...clone(once), events: [] };
+  t.ok("it is a no-op on a complete state", same(withDefaultLists(clone(complete)), complete));
+  t.ok("an older state gains the newer list", Array.isArray(withDefaultLists(clone(once)).events));
   t.ok(
     "a file without a later list still validates",
     validateImport({ stories: [], chapters: [], goals: [], steps: [], journey: [] }) === null

@@ -8,7 +8,7 @@ const { loadGlobal } = require("./harness");
 
 module.exports = function (t) {
   global.state = { steps: [], journey: [], goals: [], chapters: [] };
-  loadGlobal(["esc", "todayLocal", "plural", "emptyState", "stepRow"]);
+  loadGlobal(["esc", "localDate", "todayLocal", "plural", "emptyState", "stepRow"]);
 
   t.section("plural");
   t.ok("singular has no s", plural(1, "step") === "1 step");

@@ -216,6 +216,12 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .step-meta{font-size:11px;color:var(--muted);margin-top:3px}
 .step-anchor{font-size:11px;color:var(--ink);opacity:.72;margin-top:3px;font-style:italic}
 .view-toggle{display:flex;gap:8px;margin:0 0 18px}
+.event-list{display:flex;flex-direction:column;gap:10px;margin:0 0 18px}
+.event-row{border:2px solid var(--ink);background:var(--paper);padding:12px 14px}
+.event-when{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.event-title{font-family:var(--serif);font-size:18px;margin:2px 0 6px}
+.event-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+.timeline-add{margin:0 0 18px}
 .view-tab{font-family:var(--sans);font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;padding:8px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink);cursor:pointer}
 .view-tab.on{background:var(--ink);color:var(--paper2)}
 .flat-steps{margin-bottom:22px}
@@ -445,7 +451,8 @@ const DEFAULT_STATE = {
   chapters:[],
   goals:[],
   steps:[],
-  journey:[]
+  journey:[],
+  events:[]
 };
 
 /* ---------------------------------------------------------------
@@ -683,6 +690,38 @@ function flatSteps(activeIds){
   return `${plural(n,"mark")} · last ${humanDate(t.lastMarkedAt||todayLocal())}`;
 }
 function journeyIn(id){return state.journey.filter(x=>x.storyId===id).sort((a,b)=>b.date.localeCompare(a.date))}
+/* Events follow Google Calendar's event resource shape, so an .ics
+   export, and any later sync, stay a mapping rather than a translation.
+   The consequence is that an event says summary and description where
+   the rest of the state says title and note, and that all-day end is
+   EXCLUSIVE, the day after the last day, as Google has it. Nothing a
+   person reads touches end directly; it goes through eventLastDate(). */
+function eventIsAllDay(e){return !!(e.start&&e.start.date)}
+function eventStartDate(e){return e.start.date||e.start.dateTime.slice(0,10)}
+function eventStartTime(e){return e.start.dateTime?e.start.dateTime.slice(11,16):""}
+function eventLastDate(e){
+  if(e.end&&e.end.date)return shiftDate(e.end.date,-1);
+  if(e.end&&e.end.dateTime)return e.end.dateTime.slice(0,10);
+  return eventStartDate(e);
+}
+function eventSortKey(e){return eventStartDate(e)+" "+(eventStartTime(e)||"00:00")}
+/* Behind you only once its last day has passed, so a trip still reads
+   as ahead on its final morning. */
+function eventIsPast(e,today){return eventLastDate(e)<today}
+function eventsAhead(today){
+  return state.events.filter(e=>!eventIsPast(e,today))
+    .sort((a,b)=>eventSortKey(a).localeCompare(eventSortKey(b)));
+}
+/* Past events are Journey entries: both are things that happened on a
+   date. Merged rather than converted, so nothing is stored twice and an
+   event stays an event, still editable and exportable as one. */
+function journeyBehind(storyId,today){
+  const mine=x=>!storyId||x.storyId===storyId;
+  return state.journey.filter(mine).map(a=>({type:"journey",date:a.date,rec:a}))
+    .concat(state.events.filter(e=>mine(e)&&eventIsPast(e,today))
+      .map(e=>({type:"event",date:eventLastDate(e),rec:e})))
+    .sort((a,b)=>b.date.localeCompare(a.date)||b.type.localeCompare(a.type));
+}
 function latest(id){
   let d="";
   for(const a of state.journey)if(a.storyId===id&&a.date>d)d=a.date;
@@ -719,10 +758,9 @@ function toast(msg){
 /* Local calendar date as YYYY-MM-DD. Not toISOString(), which is UTC:
    after midnight in a positive-offset timezone that returns yesterday,
    which stamped completed steps with the wrong day. */
-function todayLocal(){
-  const d=new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
+function localDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function todayLocal(){return localDate(new Date())}
+function shiftDate(iso,days){const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+days);return localDate(d)}
 function humanDate(d){
   const today=new Date(); today.setHours(12,0,0,0);
   const date=new Date(d+"T12:00:00");
@@ -764,7 +802,31 @@ function renderHome(){
     <div class="view-toggle">
       <button class="view-tab${homeView==="stories"?" on":""}" data-view="stories">Stories</button>
       <button class="view-tab${homeView==="steps"?" on":""}" data-view="steps">Steps</button>
+      <button class="view-tab${homeView==="timeline"?" on":""}" data-view="timeline">Timeline</button>
     </div>`;
+
+  if(homeView==="timeline"){
+    /* One spine. Events ahead, then everything behind, which is the
+       Journey with past events folded in. Nothing counts down and
+       nothing is overdue. */
+    const today=todayLocal();
+    const ahead=eventsAhead(today);
+    const behind=journeyBehind(null,today);
+    document.getElementById("main").innerHTML=`
+      ${homeHero("What's coming, and what's been.")}
+      ${toggle}
+      <div class="section-rule"><span>Ahead</span></div>
+      ${ahead.length?`<section class="event-list">${ahead.map(e=>eventRow(e,today)).join("")}</section>`
+        :emptyState("Nothing in the diary.","Add anything with a date, a birthday, a trip, an appointment.",{page:true})}
+      <div class="timeline-add"><button class="btn" id="addEventBtn">＋ Add event</button></div>
+      <div class="section-rule"><span>Behind</span></div>
+      ${behind.length?`<section class="journal">${behind.map(behindEntry).join("")}</section>`
+        :emptyState("Nothing behind you yet.","What you do will gather here.",{page:true})}`;
+    document.getElementById("addEventBtn").onclick=()=>openAddEvent();
+    bindMain();
+    renderStorageStatus();
+    return;
+  }
 
   if(homeView==="steps"){
     /* Every open one-off step, across every active Story. Practices are
@@ -864,6 +926,7 @@ function bindMain(){
   on("[data-card]",el=>openStory(el.dataset.card));
   on("[data-open-main]",el=>openStory(el.dataset.openMain));
   on("[data-view]",el=>{homeView=el.dataset.view;renderHome()});
+  on("[data-edit-event]",el=>openEditEvent(el.dataset.editEvent));
   on("[data-complete]",el=>completeStep(el.dataset.complete));
   on("[data-mark]",el=>markPractice(el.dataset.mark));
   on("[data-edit-chapter]",el=>openEditChapter(el.dataset.editChapter));
@@ -901,6 +964,45 @@ function storyCard(x){
 /* One Journey entry. Entries that came from a step or practice carry a
    ticked checkbox: unticking puts the step back, or removes that mark.
    Manually logged entries have nothing to put back, so no checkbox. */
+/* humanDate only looks backwards. Ahead needs its own words, and never
+   a countdown or a deadline: an event is a fact on a date, not a due. */
+function aheadDate(d,today){
+  const diff=Math.round((new Date(d+"T12:00:00")-new Date(today+"T12:00:00"))/86400000);
+  if(diff<=0)return "Today";
+  if(diff===1)return "Tomorrow";
+  if(diff<7)return "In "+diff+" days";
+  return new Date(d+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+}
+function eventWhen(e,today){
+  const start=eventStartDate(e),last=eventLastDate(e);
+  const span=last!==start?" to "+new Date(last+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+  return aheadDate(start,today)+span+(eventIsAllDay(e)?"":" at "+eventStartTime(e));
+}
+function eventRow(e,today){
+  const story=e.storyId?storyById(e.storyId):null;
+  return `<div class="event-row">
+    <div class="event-when">${esc(eventWhen(e,today))}</div>
+    <div class="event-title">${esc(e.summary)}</div>
+    <div class="event-meta">
+      <span>${esc([e.location,story?`${story.icon} ${story.name}`:""].filter(Boolean).join(" · "))}</span>
+      <button class="icon-btn" data-edit-event="${e.id}" title="Edit event">✎</button>
+    </div>
+  </div>`;
+}
+/* A past event renders in the Journey's own clothes, because that is
+   what it now is. It keeps its own edit route, since the record is
+   still an event. */
+function eventAsEntry(e){
+  return `<div class="journal-entry">
+    <div class="journal-date">${humanDate(eventLastDate(e))}</div>
+    <div class="journal-note">${esc(e.summary)}</div>
+    <div class="journal-meta">
+      <span>Happened</span>
+      <button class="icon-btn" data-edit-event="${e.id}" title="Edit event">✎</button>
+    </div>
+  </div>`;
+}
+function behindEntry(item){return item.type==="event"?eventAsEntry(item.rec):journalEntry(item.rec)}
 function journalEntry(a){
   const t=a.stepId?state.steps.find(x=>x.id===a.stepId):null;
   const label=a.kind==="practice"?"Practice marked":a.stepId?"Step completed":"Activity logged";
@@ -960,6 +1062,13 @@ const DELETE_RULES={
     impact:()=>({}),
     apply:id=>{state.journey=state.journey.filter(x=>x.id!==id)}
   },
+  event:{
+    label:"Event",
+    find:id=>state.events.find(x=>x.id===id),
+    name:e=>e.summary,
+    impact:()=>({}),
+    apply:id=>{state.events=state.events.filter(x=>x.id!==id)}
+  },
   story:{
     label:"Story",
     find:id=>state.stories.find(x=>x.id===id),
@@ -972,6 +1081,7 @@ const DELETE_RULES={
       entries:state.journey.filter(x=>x.storyId===id).length
     }}),
     apply:id=>{
+      state.events.forEach(e=>{if(e.storyId===id)e.storyId=null});
       state.chapters=state.chapters.filter(x=>x.storyId!==id);
       state.goals=state.goals.filter(x=>x.storyId!==id);
       state.steps=state.steps.filter(x=>x.storyId!==id);
@@ -1027,7 +1137,7 @@ function goalRow(g){
 function openStory(id){
   currentStory=id;renderNav();
   const story=storyById(id); if(!story)return renderHome();
-  const gs=allGoals(id), ss=allChaptersIn(id), ps=practices(id), qs=onceSteps(id), history=journeyIn(id);
+  const gs=allGoals(id), ss=allChaptersIn(id), ps=practices(id), qs=onceSteps(id), history=journeyBehind(id,todayLocal());
   document.getElementById("main").innerHTML=`
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
@@ -1092,7 +1202,7 @@ function openStory(id){
     <section class="panel journey">
       <div class="section-title"><h2>Journey</h2><div class="count-label">${plural(history.length,"step")} taken</div></div>
       <div class="journey-track">
-        ${history.length?history.map(a=>journalEntry(a)).join(""):emptyState("Your Journey begins with a step.","Complete a step or log something you did.")}
+        ${history.length?history.map(behindEntry).join(""):emptyState("Your Journey begins with a step.","Complete a step or log something you did.")}
       </div>
     </section>`;
 
@@ -1203,6 +1313,7 @@ function textField(id,label,value="",placeholder=""){
   return field(label,`<input id="${id}"${value?` value="${esc(value)}"`:""}${placeholder?` placeholder="${esc(placeholder)}"`:""}>`);
 }
 function dateField(id,label,value){return field(label,`<input id="${id}" type="date" value="${esc(value)}">`)}
+function timeField(id,label,value){return field(label,`<input id="${id}" type="time" value="${esc(value)}">`)}
 /* options is [value, text] pairs, so no caller hand-writes an <option>. */
 function selectField(id,label,options,selected){
   return field(label,`<select id="${id}">${options.map(([v,text])=>`<option value="${esc(v)}"${v===selected?" selected":""}>${esc(text)}</option>`).join("")}</select>`);
@@ -1313,6 +1424,25 @@ function showModal(title,body){
   const c=document.getElementById("cancelModal");if(c)c.onclick=closeModal;
 }
 function closeModal(){document.getElementById("modal").classList.remove("open")}
+/* Swipe between the home panels, in the order the tabs read. Only fires
+   when the gesture is clearly horizontal, so it never steals a scroll.
+   The landing view is still Stories every launch; this changes how you
+   move between them, not where the app opens. */
+const HOME_VIEWS=["stories","steps","timeline"];
+let touchX=null,touchY=null;
+document.getElementById("main").addEventListener("touchstart",e=>{
+  if(e.touches.length!==1){touchX=null;return}
+  touchX=e.touches[0].clientX;touchY=e.touches[0].clientY;
+},{passive:true});
+document.getElementById("main").addEventListener("touchend",e=>{
+  if(touchX===null||currentStory)return;
+  const dx=e.changedTouches[0].clientX-touchX,dy=e.changedTouches[0].clientY-touchY;
+  touchX=null;
+  if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;
+  const next=HOME_VIEWS.indexOf(homeView)+(dx<0?1:-1);
+  if(next<0||next>=HOME_VIEWS.length)return;
+  homeView=HOME_VIEWS[next];renderHome();
+},{passive:true});
 document.getElementById("modalClose").onclick=closeModal;
 document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
 function openGoal(id){
@@ -1352,6 +1482,64 @@ function openLog(defaultId){
     save();closeModal();toast("Journey updated");
     if(currentStory===sid)openStory(sid);else renderHome();
   };
+}
+/* One modal for both, since an event has no add-only or edit-only
+   field. Times are local wall clock plus an IANA zone, which is
+   Google's {dateTime, timeZone} shape, never toISOString(). */
+function eventForm(e){
+  const allDay=e?eventIsAllDay(e):true;
+  const start=e?eventStartDate(e):todayLocal();
+  const last=e?eventLastDate(e):start;
+  const startT=e?eventStartTime(e):"09:00";
+  const endT=e&&e.end&&e.end.dateTime?e.end.dateTime.slice(11,16):"10:00";
+  return textField("eventSummary","Event",e?e.summary:"","e.g. Lunch with Nicole")+
+    selectField("eventAllDay","When",[["yes","All day"],["no","At a time"]],allDay?"yes":"no")+
+    dateField("eventStart","Starts",start)+
+    dateField("eventEnd","Ends",last)+
+    `<div class="field" id="eventTimes">${timeField("eventStartTime","From",startT)}${timeField("eventEndTime","To",endT)}</div>`+
+    textField("eventLocation","Location",e&&e.location?e.location:"","Optional")+
+    textField("eventDescription","Notes",e&&e.description?e.description:"","Optional")+
+    selectField("eventStory","Story",[["","No story"],...activeStories().map(x=>[x.id,`${x.icon} ${x.name}`])],e&&e.storyId?e.storyId:"");
+}
+function bindEventForm(){
+  const sel=document.getElementById("eventAllDay"),times=document.getElementById("eventTimes");
+  const sync=()=>{times.style.display=sel.value==="yes"?"none":""};
+  sel.onchange=sync;sync();
+}
+function readEventForm(){
+  const summary=val("eventSummary");
+  if(!summary){toast("Give the event a name");return null}
+  const startD=val("eventStart")||todayLocal();
+  let lastD=val("eventEnd")||startD;
+  if(lastD<startD)lastD=startD;
+  const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const allDay=val("eventAllDay")==="yes";
+  /* Google's all-day end is the day after the last day. Stored that way
+     so the export is a copy rather than a calculation. */
+  const start=allDay?{date:startD}:{dateTime:`${startD}T${val("eventStartTime")||"09:00"}:00`,timeZone:zone};
+  const end=allDay?{date:shiftDate(lastD,1)}:{dateTime:`${lastD}T${val("eventEndTime")||"10:00"}:00`,timeZone:zone};
+  return {summary,start,end,location:val("eventLocation"),description:val("eventDescription"),storyId:val("eventStory")||null};
+}
+function openAddEvent(defaultStoryId){
+  showModal("Add Event",eventForm(null)+modalFooter("saveEvent","Add event"));
+  bindEventForm();
+  if(defaultStoryId)document.getElementById("eventStory").value=defaultStoryId;
+  document.getElementById("saveEvent").onclick=()=>{
+    const data=readEventForm(); if(!data)return;
+    state.events.push({id:newId("e"),status:"confirmed",created:new Date().toISOString(),...data});
+    save();closeModal();renderHome();toast("Event added");
+  };
+}
+function openEditEvent(id){
+  const e=state.events.find(x=>x.id===id); if(!e)return;
+  showModal("Edit Event",eventForm(e)+modalFooter("saveEventEdit","Save","deleteEvent"));
+  bindEventForm();
+  document.getElementById("saveEventEdit").onclick=()=>{
+    const data=readEventForm(); if(!data)return;
+    Object.assign(e,data,{updated:new Date().toISOString()});
+    save();closeModal();renderHome();toast("Event updated");
+  };
+  wireDelete("deleteEvent","event",id,renderHome);
 }
 function openStoryModal(editId){
   const story=storyById(editId);

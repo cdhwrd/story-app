@@ -43,6 +43,10 @@ module.exports = async function (t) {
       journey: [
         { id: "a1", storyId: "q1", stepId: "t1", note: "Wrote", date: "2026-05-01" },
         { id: "a2", storyId: "q2", stepId: "t3", note: "Other", date: "2026-05-02" }
+      ],
+      events: [
+        { id: "e1", storyId: "q1", summary: "Reading", start: { date: "2026-06-01" }, end: { date: "2026-06-02" } },
+        { id: "e2", storyId: null, summary: "Dentist", start: { date: "2026-06-03" }, end: { date: "2026-06-04" } }
       ]
     };
     global.state = state;

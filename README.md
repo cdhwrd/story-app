@@ -83,7 +83,7 @@ No dependencies, no install step. The suite reads `index.html`, extracts named f
 
 `tests/persistence.test.js` covers the migration runner, the shape checks, and the import path. Nothing in the persistence band changes without a test.
 
-`tests/modals.test.js` covers the modal building blocks.
+`tests/modals.test.js` covers the modal building blocks, and `tests/events.test.js` the event derivations, with particular attention to the exclusive all-day end.
 
 The **derivations** band is where testable logic belongs: pure functions that take state and return data. Anything deciding what is shown, in what order, or what a count is goes there rather than inside a renderer. Renderers turn data into HTML and nothing more.
 
@@ -100,6 +100,7 @@ Story  (state.stories)
               └── Step  (state.steps)    step.goalId → Goal (nullable)
 
 Journey  (state.journey)             entry.storyId → Story
+Event    (state.events)              event.storyId → Story (nullable)
 ```
 
 Every item also carries `storyId`, so a Story's contents can be fetched without walking the tree.
@@ -111,8 +112,13 @@ Every item also carries `storyId`, so a Story's contents can be fetched without 
 | Goal | `goals` | `id`, `storyId`, `chapterId`, `title`, `detail`, `status` |
 | Step | `steps` | `id`, `storyId`, `goalId`, `title`, `status`, `completedAt`, `mode`, `anchor`, `lastMarkedAt` |
 | Journey entry | `journey` | `id`, `storyId`, `stepId`, `note`, `date`, `kind` |
+| Event | `events` | `id`, `storyId`, `summary`, `description`, `location`, `start`, `end`, `status` |
 
 Relationships are **real foreign key fields**, not a generic tag or polymorphic relation system.
+
+**Events are the one deliberate exception to the rule below.** They follow Google Calendar's event resource shape verbatim, so an `.ics` export and any later sync stay a mapping rather than a translation: `summary` not title, `description` not note, `start`/`end` as `{date}` or `{dateTime, timeZone}`. Alignment, not replication; there are no attendees, no VTIMEZONE and no per-occurrence overrides.
+
+Two consequences worth knowing. All-day `end` is **exclusive**, the day after the last day, as Google has it, so a trip on the 25th to the 27th stores `end: 2026-09-28`; nothing a person reads touches `end` directly, it goes through `eventLastDate()`. And times are local wall clock plus an IANA zone, never `toISOString()`.
 
 **The state uses the UI's words, and only those.** A conventions test fails the build if `quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId` or `taskId` appear anywhere except the two places that must name them: `MIGRATIONS[3]`, and `PRE_V3_LISTS`, which is what lets an older export still restore.
 
@@ -147,7 +153,8 @@ All five delete paths run through one rules table, `DELETE_RULES`, with `deleteI
 | Goal | Its steps are **unfiled**, not deleted |
 | Step | Removed. Its Journey entries stay |
 | Journey entry | Just that entry |
-| Story | Everything in it, after writing a backup |
+| Event | Removed. Nothing else is affected |
+| Story | Everything in it, after writing a backup. Its events are **unfiled**, not deleted |
 
 The confirmation sentence is generated from the same impact the deletion uses, so the promise and the behaviour cannot drift apart.
 
@@ -281,8 +288,8 @@ MVP prototype in daily use. The core Story → Chapter → Goal → Step → Jou
 
 Product, roughly in order:
 
-1. **Events and the timeline.** Groundwork is in place: modals build from shared blocks, and a new state list needs only a line in `DEFAULT_STATE`. Events are objective things on a date (dentist, a birthday), separate from Steps and with no due-date semantics. The timeline is one spine scrolled both ways: events ahead, Journey behind. Optional `storyId`, since not everything belongs to a Story.
-2. **`.ics` export.** One event at a time, using the event id as `UID` so re-exporting updates rather than duplicating. One-way and a copy; no OAuth, no sync.
+1. **Recurring events.** Yearly birthdays, monthly rent. This needs `RRULE` expansion, which is the one part of the calendar worth taking a dependency for: `rrule.js` (46KB, 13.6KB gzipped, UMD, no build step) rather than hand-rolling `BYDAY`, `BYSETPOS`, `COUNT` versus `UNTIL` and DST. It is not vendored yet, because a library nothing calls is dead code. It lands wired up. The `recurrence` field is already in the record shape.
+2. **`.ics` export.** One event at a time, using the event id as `UID` so re-exporting updates rather than duplicating. Written by hand, roughly 40 lines; `ical.js` is only needed for parsing arbitrary calendars. A round-trip test, event → `.ics` → parse → identical, is the real guarantee of Google compatibility. One-way and a copy; no OAuth, no sync.
 3. **Deleted Stories keep their Journey entries.** Blocked until the timeline exists, because every current view finds entries by Story, so preserved entries would be invisible. Denormalise the Story name onto them as text.
 4. **A derived line on the Story page**, stating something true about the record ("part of your life since March, 14 marks"). Needs a Story start date; `createdAt` exists on newer Stories, older ones may need backfilling.
 5. **The return band.** After a quiet stretch, home opens with something the person wrote and how long the Story has existed. Triggered off the date of the most recent Journey entry, never off a stored "last opened", so it responds to the story being quiet rather than tracking the person. No call to action, never a modal, never mentions the gap.
@@ -309,13 +316,19 @@ The look is editorial and printed: cream paper, warm black ink, serif for anythi
 
 ### Home views
 
-Home has two views behind a toggle: **Stories** (the default) and **Steps**.
+Home has three views: **Stories** (the default), **Steps** and **Timeline**. The tabs stay as the visible affordance, and a horizontal swipe moves between them in that order. The swipe only fires when the gesture is clearly horizontal, so it never steals a scroll.
 
 Steps is a flat list of every open one-off step across every active Story, newest first, each tagged with the Story it belongs to. No grouping and no counts, so it reads as what's in motion rather than as a backlog.
 
 - **Practices are excluded.** A list of practices not yet marked today is a list of absences, and the app does not show absence.
 - **Newest first**, because oldest-first surfaces the stalest thing, which is quietly accusing. There are no due dates and there will not be any.
-- **The toggle is not persisted.** The app opens on Stories every launch, not on a list of everything outstanding.
+- **The toggle is not persisted.** The app opens on Stories every launch, not on a list of everything outstanding. Swiping changes how you move between views, not where the app opens.
+
+Timeline is one spine: events **ahead**, then everything **behind**, which is the Journey with past events folded into it.
+
+- **A past event is a Journey entry**, because both are things that happened on a date. Merged at read time, never converted, so nothing is stored twice and the record stays an event: still editable as one, still exportable as one.
+- **An event is behind you only once its last day has passed**, so a trip still reads as ahead on its final morning.
+- **Nothing counts down and nothing is overdue.** An event is a fact on a date, not a due date. `aheadDate()` says Today, Tomorrow, In 3 days, then a plain date.
 
 ### Deliberately removed
 
@@ -351,4 +364,7 @@ Things the app does not have, and should not grow. Each was considered and rejec
 - What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
 - The Story page is macro; there is no focused "what do I do now" view
 - `completedAt` is date-only while `createdAt` is a full ISO timestamp
+- Events do not recur yet, so a birthday or a monthly bill has to be entered each time
+- Story cannot fire a reminder. An installed PWA cannot schedule a notification for a future date on Android: Notification Triggers never shipped, and web notifications only fire while something is running. A reminder can be stored and exported so Google fires it, but Story itself will never buzz your phone
+- Events have no month grid, only the timeline
 - "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries
