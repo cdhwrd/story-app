@@ -47,6 +47,8 @@ A seventh check covers the documents themselves: every relative link in the READ
 
 `tests/persistence.test.js` covers the migration runner, the shape checks, and the import path. Nothing in the persistence band changes without a test.
 
+`tests/docs.test.js` checks the figures these documents quote against the source they describe: the schema version, every migration having an entry, the vendored library's name and size, the duplicate-selector and breakpoint counts, the state lists in the entity table, the deletion table's rows, the `SECTION:` map in AGENTS.md, and the home views. Stale documentation is this project's most repeated defect and it never announces itself, so a figure that can be derived is asserted rather than trusted. A figure that cannot be derived, such as the 2500-line split threshold, is a decision rather than a fact and is not asserted.
+
 `tests/modals.test.js` covers the modal building blocks, `tests/events.test.js` the event derivations, with particular attention to the exclusive all-day end, and `tests/ics.test.js` the calendar export by round trip.
 
 The **derivations** band is where testable logic belongs: pure functions that take state and return data. Anything deciding what is shown, in what order, or what a count is goes there rather than inside a renderer. Renderers turn data into HTML and nothing more.
