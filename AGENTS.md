@@ -67,6 +67,7 @@ Open only what the task needs.
 | Repo layout, why one file, tests and harness | [Architecture](docs/architecture.md) |
 | Backup, Drive, `.ics`, Google Calendar shape | [Integrations](docs/integrations.md) |
 | What to work on, what not to rebuild | [Roadmap](docs/roadmap.md) |
+| Choosing between two implementations | [Engineering principles](docs/architecture.md#engineering-principles) |
 
 ## Pushing
 

@@ -1,5 +1,25 @@
 # Architecture
 
+## Engineering principles
+
+Applied to every change. Each is followed by the decision in this repo that shows what it means, because a principle with no worked example gets quoted rather than used.
+
+1. **Requirement first.** Build only for a concrete requirement, and take the simplest solution that works. *The `.ics` writer is 40 hand-written lines rather than a parsing library, because generating one format is not the problem a library solves.*
+
+2. **Separate by default.** Keep responsibilities and representations apart; couple them only when required. *Derivations return data, renderers turn data into HTML, and nothing decides what to show inside a renderer.*
+
+3. **Reuse before building.** Prefer platform capabilities, established standards and mature libraries. Build custom only when they fall short. *`rrule` is vendored rather than hand-rolled: `BYSETPOS`, `COUNT` versus `UNTIL` and DST are where recurrence code goes quietly wrong.*
+
+4. **Innovate where it matters.** Put novelty in product value, not in established technical mechanisms. *Storage is an ordinary IndexedDB record and a plain JSON export. The Story, Chapter, Goal, Step, Journey model is where the thinking goes.*
+
+5. **Preserve meaning.** Separate concepts from their representations, prefer interoperable formats, never silently lose information. *Migrations copy on presence rather than truthiness, because `null` means unfiled and dropping the key changes what a record says. A recurrence rule this UI cannot express is written back out untouched rather than downgraded.*
+
+6. **Generalise from evidence.** Do not design for hypothetical needs. *A correspondence check for `id` against `getElementById` was measured, produced 16 false positives, and was not built.*
+
+**When two of these collide**, which happens: reuse wins where the problem is genuinely hard and already solved well, and building wins where the dependency would be larger than the thing it replaces. That is the line between vendoring `rrule` and hand-writing the `.ics` file, and it is the same judgement in both directions.
+
+Before implementing, the questions worth asking are what concrete requirement this solves, what the simplest solution is, what can be reused, what should stay separate, whether meaning is preserved, and whether the need is real or hypothetical.
+
 ## Repository layout
 
 ```text
