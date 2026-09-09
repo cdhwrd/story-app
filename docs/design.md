@@ -14,6 +14,8 @@ The look is editorial and printed: cream paper, warm black ink, serif for anythi
 
 ### Home views
 
+Adding an event from the month view opens on the day you tapped, and the end date follows the start unless it has deliberately been set to something else.
+
 Home has four views: **Stories** (the default), **Steps**, **Timeline** and **Calendar**. The tabs stay as the visible affordance, and a horizontal swipe moves between them in that order. The swipe only fires when the gesture is clearly horizontal, so it never steals a scroll.
 
 Steps is a flat list of every open one-off step across every active Story, newest first, each tagged with the Story it belongs to. No grouping and no counts, so it reads as what's in motion rather than as a backlog.

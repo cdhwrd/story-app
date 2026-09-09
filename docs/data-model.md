@@ -27,19 +27,11 @@ Every item also carries `storyId`, so a Story's contents can be fetched without 
 
 Relationships are **real foreign key fields**, not a generic tag or polymorphic relation system.
 
-**Events are the one deliberate exception to the rule below.** They follow Google Calendar's event resource shape verbatim, so an `.ics` export and any later sync stay a mapping rather than a translation: `summary` not title, `description` not note, `start`/`end` as `{date}` or `{dateTime, timeZone}`. Alignment, not replication; there are no attendees, no VTIMEZONE and no per-occurrence overrides.
+**Events are the one deliberate exception to the vocabulary rule below.** They carry Google Calendar's field names verbatim, `summary` and `description` rather than title and note, so that an export is a mapping and not a translation. The reasoning and its limits are in [Google Calendar alignment](integrations.md#google-calendar-alignment).
 
 Two consequences worth knowing. All-day `end` is **exclusive**, the day after the last day, as Google has it, so a trip on the 25th to the 27th stores `end: 2026-09-28`; nothing a person reads touches `end` directly, it goes through `eventLastDate()`. And times are local wall clock plus an IANA zone, never `toISOString()`.
 
-**`.ics` export** is written by hand against RFC 5545, not against what Google happens to accept: CRLF endings, TEXT escaping, and content lines folded at 75 **octets** rather than characters, since a Story icon is a four-byte emoji. `UID` is the record's own id, so re-importing the same event updates it rather than duplicating it. All-day `DTEND` goes out exactly as stored, because iCalendar wants it exclusive too, so both ends are a copy rather than a calculation. Timed events go out as local wall clock with a `TZID` parameter.
-
-Correctness is held by a round trip in `tests/ics.test.js`: build a file, parse it with a parser written independently of the writer, and require the event to survive. It was cross-checked once against `ical.js` during development, which cannot live in the suite because the tests take no dependencies.
-
-Export is one-way and a copy. No OAuth, no sync.
-
 **Recurrence is expanded at read time and never stored**, the same way mark counts are derived. A birthday is one record, so editing it moves every occurrence. An *occurrence* is `{date, last, rec}`: the record plus the days it actually lands on. Expansion runs through UTC and comes back through `utcDateOf()`, because a repeating event is a wall-clock idea (a birthday is the 16th everywhere) and local time would drift it across a DST boundary. Views expand at most a year either way; a rule can run forever, a view cannot.
-
-Adding an event from the month view opens on the day you tapped, and the end date follows the start unless it has deliberately been set to something else. The modal offers Never, daily, weekly, monthly and yearly. A rule it cannot express, from an import or a future version, comes back as **Custom** and is written out untouched rather than downgraded to the nearest option.
 
 **The state uses the UI's words, and only those.** A conventions test fails the build if `quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId` or `taskId` appear anywhere except the two places that must name them: `MIGRATIONS[3]`, and `PRE_V3_LISTS`, which is what lets an older export still restore.
 

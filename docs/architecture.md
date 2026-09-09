@@ -37,7 +37,13 @@ node tests/run.js
 
 No dependencies, no install step. The suite reads `index.html`, extracts named functions from the inline script, and exercises the real source rather than a copy. CI runs the same command on every push.
 
-`tests/conventions.test.js` holds the project rules as assertions: three ratchets (duplicate selectors, unused classes, inline styles) whose ceilings may only be lowered, a ban on failure and deadline language in UI copy, and a guard on the state vocabulary. AGENTS.md states the conventions; this is what enforces them.
+`tests/conventions.test.js` holds the project rules as assertions: three ratchets (duplicate selectors, unused classes, inline styles) whose ceilings may only be lowered, a ban on failure and deadline language in UI copy, a guard on the state vocabulary, and four correspondence checks. AGENTS.md names only the rules this file cannot enforce.
+
+The correspondence checks exist because the commonest defect here is not a wrong function but a stale relationship: a function whose last caller went away, a CSS class whose rule never existed, a rule nothing renders, a `data-` attribute nothing listens for. Each is invisible reading either side alone and mechanical to check across both. Every guard is verified to fail on a real example before being trusted.
+
+One correspondence is **not** viable, recorded so it is not attempted twice: `id` against `getElementById`. Ids are built from template arguments (`id="${saveId}"`), which yields 16 false positives.
+
+A seventh check covers the documents themselves: every relative link in the README, AGENTS.md and `docs/` must point at a file that exists and, where it names one, a heading that exists.
 
 `tests/persistence.test.js` covers the migration runner, the shape checks, and the import path. Nothing in the persistence band changes without a test.
 
