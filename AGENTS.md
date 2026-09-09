@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Story: a single-user, local-first life navigator. One HTML file, no build step, no framework, no dependencies.
+Story: a single-user, local-first life navigator. No build step, no framework. The app is `index.html` with all styles, markup and script inline, plus one vendored library, `rrule-2.8.1.min.js`, for recurrence.
 
 ## Commands
 
@@ -83,9 +83,9 @@ git push "https://<token>@github.com/cdhwrd/story-app.git" main
 - Touching `.github/workflows/` also needs **Workflows: read and write**, or GitHub rejects the whole push, including for a comment change. Leave workflow files alone unless asked.
 - `git pull` needs `--no-rebase` here; the repo has no pull strategy configured.
 
-## Who this is for
+## Why the constraints exist
 
-The owner uses it daily. It is also built for someone easily overwhelmed and low on motivation. That is why there are no due dates, no streaks, no absence indicators, and why ordering surfaces momentum rather than the stalest item. Design choices that look arbitrary usually follow from this.
+The app records what happened, never what did not. Most of the rules above follow from that one: no due dates, no streaks, no absence indicators, and ordering that surfaces momentum rather than the stalest item. A choice that looks arbitrary usually follows from it. Nothing here should measure the gap between what was done and what could have been.
 
 ## Scope
 
