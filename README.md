@@ -86,7 +86,7 @@ No dependencies, no install step. The suite reads `index.html`, extracts named f
 
 `tests/persistence.test.js` covers the migration runner, the shape checks, and the import path. Nothing in the persistence band changes without a test.
 
-`tests/modals.test.js` covers the modal building blocks, and `tests/events.test.js` the event derivations, with particular attention to the exclusive all-day end.
+`tests/modals.test.js` covers the modal building blocks, `tests/events.test.js` the event derivations, with particular attention to the exclusive all-day end, and `tests/ics.test.js` the calendar export by round trip.
 
 The **derivations** band is where testable logic belongs: pure functions that take state and return data. Anything deciding what is shown, in what order, or what a count is goes there rather than inside a renderer. Renderers turn data into HTML and nothing more.
 
@@ -122,6 +122,12 @@ Relationships are **real foreign key fields**, not a generic tag or polymorphic 
 **Events are the one deliberate exception to the rule below.** They follow Google Calendar's event resource shape verbatim, so an `.ics` export and any later sync stay a mapping rather than a translation: `summary` not title, `description` not note, `start`/`end` as `{date}` or `{dateTime, timeZone}`. Alignment, not replication; there are no attendees, no VTIMEZONE and no per-occurrence overrides.
 
 Two consequences worth knowing. All-day `end` is **exclusive**, the day after the last day, as Google has it, so a trip on the 25th to the 27th stores `end: 2026-09-28`; nothing a person reads touches `end` directly, it goes through `eventLastDate()`. And times are local wall clock plus an IANA zone, never `toISOString()`.
+
+**`.ics` export** is written by hand against RFC 5545, not against what Google happens to accept: CRLF endings, TEXT escaping, and content lines folded at 75 **octets** rather than characters, since a Story icon is a four-byte emoji. `UID` is the record's own id, so re-importing the same event updates it rather than duplicating it. All-day `DTEND` goes out exactly as stored, because iCalendar wants it exclusive too, so both ends are a copy rather than a calculation. Timed events go out as local wall clock with a `TZID` parameter.
+
+Correctness is held by a round trip in `tests/ics.test.js`: build a file, parse it with a parser written independently of the writer, and require the event to survive. It was cross-checked once against `ical.js` during development, which cannot live in the suite because the tests take no dependencies.
+
+Export is one-way and a copy. No OAuth, no sync.
 
 **Recurrence is expanded at read time and never stored**, the same way mark counts are derived. A birthday is one record, so editing it moves every occurrence. An *occurrence* is `{date, last, rec}`: the record plus the days it actually lands on. Expansion runs through UTC and comes back through `utcDateOf()`, because a repeating event is a wall-clock idea (a birthday is the 16th everywhere) and local time would drift it across a DST boundary. Views expand at most a year either way; a rule can run forever, a view cannot.
 
@@ -295,12 +301,13 @@ MVP prototype in daily use. The core Story → Chapter → Goal → Step → Jou
 
 Product, roughly in order:
 
-1. **`.ics` export.** One event at a time, using the event id as `UID` so re-exporting updates rather than duplicating. Written by hand, roughly 40 lines; `ical.js` is only needed for parsing arbitrary calendars. A round-trip test, event → `.ics` → parse → identical, is the real guarantee of Google compatibility. One-way and a copy; no OAuth, no sync.
 3. **Deleted Stories keep their Journey entries.** Blocked until the timeline exists, because every current view finds entries by Story, so preserved entries would be invisible. Denormalise the Story name onto them as text.
 4. **A derived line on the Story page**, stating something true about the record ("part of your life since March, 14 marks"). Needs a Story start date; `createdAt` exists on newer Stories, older ones may need backfilling.
 5. **The return band.** After a quiet stretch, home opens with something the person wrote and how long the Story has existed. Triggered off the date of the most recent Journey entry, never off a stored "last opened", so it responds to the story being quiet rather than tracking the person. No call to action, never a modal, never mentions the gap.
 6. **Practice endings.** `resting` and `woven` statuses, so a practice can be set down or graduate instead of only being deleted.
 7. **Monthly Issue.** Cut by accumulation rather than by calendar, so it never has a thin month. Entries selected by structural rule only (the first time, where it started), never by sentiment, and the rule is stated as the section heading so nothing feels cherry-picked.
+
+Events are done: the record, the timeline, the month grid, recurrence and `.ics` export. What remains on them is in Known open items, and skipping a single occurrence is the one most likely to bite.
 
 Codebase, whenever there is appetite:
 
@@ -372,6 +379,9 @@ Things the app does not have, and should not grow. Each was considered and rejec
 - What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
 - The Story page is macro; there is no focused "what do I do now" view
 - `completedAt` is date-only while `createdAt` is a full ISO timestamp
+- `.ics` export emits `TZID` without a matching `VTIMEZONE` component. Google and Apple both accept this; a strict parser may not
+- `.ics` is export only. Story cannot read a calendar file back in
+- Reminders are stored nowhere, so nothing is exported for them either
 - Recurring events cannot skip or move a single occurrence. `EXDATE` and `RECURRENCE-ID` are not supported, so a cancelled week means editing the rule
 - Story cannot fire a reminder. An installed PWA cannot schedule a notification for a future date on Android: Notification Triggers never shipped, and web notifications only fire while something is running. A reminder can be stored and exported so Google fires it, but Story itself will never buzz your phone
 - "Monthly Issue" (a magazine-style summary of your Journey, with photos) is planned but not started. The data model doesn't yet support attaching photos to Journey entries
