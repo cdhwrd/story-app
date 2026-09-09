@@ -116,7 +116,7 @@ Relationships are **real foreign key fields**, not a generic tag or polymorphic 
 
 **The state uses the UI's words, and only those.** A conventions test fails the build if `quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId` or `taskId` appear anywhere except the two places that must name them: `MIGRATIONS[3]`, and `PRE_V3_LISTS`, which is what lets an older export still restore.
 
-Selectors scoped to a Story carry an `In` suffix, `chaptersIn(id)`, `stepsIn(id)`, `journeyIn(id)`, because `story` and `chapters` are already local variable names and the bare words would shadow them. `goals(id)` and `allGoals(id)` are the exception; that word needs no qualifying.
+Selectors scoped to a Story carry an `In` suffix, `chaptersIn(id)`, `stepsIn(id)`, `journeyIn(id)`, to keep them clear of the local variable names the renderers use (`story` is one). `goals(id)` and `allGoals(id)` are the exception; that word needs no qualifying.
 
 ### Steps and Practices
 
@@ -161,7 +161,7 @@ An ordered runner brings any stored state up to `SCHEMA_VERSION`, writing a pre-
 - **v2** renames `goal.target` to `goal.detail`, carrying existing text across rather than dropping it
 - **v3** renames the state keys to the UI's words: `quests`→`stories`, `subs`→`chapters`, `tasks`→`steps`, `activities`→`journey`, `questId`→`storyId`, `subQuestId`→`chapterId`, `taskId`→`stepId`. It also drops the vestigial chapter field some older steps carry rather than renaming it, since a Step reaches its Chapter through its Goal and `step.chapterId` would look exactly like the live field on a Goal
 
-**Adding a list costs no migration.** `withDefaultLists()` backfills any array in `DEFAULT_STATE` that a stored state lacks, so introducing `events` is one line there. `REQUIRED_LISTS`, which defines what makes a file a Story export, deliberately does not grow with it: requiring a new list there would reject every export written before it existed.
+**Adding a list costs no migration.** `withDefaultLists()` backfills any array in `DEFAULT_STATE` that a stored state lacks, so introducing `events` is one line there. `REQUIRED_LISTS` is excluded from that backfill and deliberately does not grow: requiring a new list there would reject every export written before it existed, and *inventing* a missing required list would turn "this state failed to convert" into "this person has no Stories", which reads as valid and would be written over real data on restore.
 
 Rules for writing the next one:
 

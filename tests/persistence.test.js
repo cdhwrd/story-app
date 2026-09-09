@@ -68,8 +68,13 @@ module.exports = async function (t) {
   global.writeBackup = async (snapshot, reason) => { backups.push({ snapshot, reason }); };
   global.SCHEMA_VERSION = schemaVersionInSource();
 
-  const { migrate, MIGRATIONS, withDefaultLists, DEFAULT_STATE } =
-    load(["migrate", "MIGRATIONS", "withDefaultLists", "DEFAULT_STATE"]);
+  /* One load, so these resolve each other: validateImport and
+     isCurrentShape both read REQUIRED_LISTS, and separate load() calls
+     are separate scopes. */
+  const { migrate, MIGRATIONS, withDefaultLists, DEFAULT_STATE, REQUIRED_LISTS,
+          validateImport, isCurrentShape, restoreSummary } =
+    load(["migrate", "MIGRATIONS", "withDefaultLists", "DEFAULT_STATE", "REQUIRED_LISTS",
+          "PRE_V3_LISTS", "validateImport", "isCurrentShape", "restoreSummary"]);
 
   const v3 = MIGRATIONS[3];
 
@@ -223,9 +228,6 @@ module.exports = async function (t) {
      with "missing its stories list", and the migration that would have
      fixed the file never gets to run. */
   t.section("an export made before v3 still restores");
-  const { validateImport, isCurrentShape, restoreSummary } =
-    load(["validateImport", "isCurrentShape", "restoreSummary", "REQUIRED_LISTS", "PRE_V3_LISTS"]);
-
   t.ok("a pre-v3 export passes validation", validateImport(v2State()) === null);
   t.ok("a v3 export passes validation", validateImport(once) === null);
   t.ok("junk is rejected", typeof validateImport(null) === "string");
@@ -262,38 +264,48 @@ module.exports = async function (t) {
      must not grow, or every export written before the new list would be
      rejected. */
   t.section("a list added later costs no migration");
-  const future = { ...DEFAULT_STATE, events: undefined };
-  delete future.events;
-  const backfilled = withDefaultLists({ schemaVersion: 3, stories: [{ id: "q1" }] });
-  t.ok("missing lists arrive as empty arrays", Array.isArray(backfilled.journey) && backfilled.journey.length === 0);
-  t.ok("existing data is left alone", backfilled.stories.length === 1);
-  t.ok("it is a no-op on a complete state", same(withDefaultLists(clone(once)), once));
 
-  /* Simulating the real thing: pretend DEFAULT_STATE has grown. */
-  const grown = { ...DEFAULT_STATE, events: [] };
-  const filled = (s) => {
-    for (const [k, v] of Object.entries(grown)) if (Array.isArray(v) && !Array.isArray(s[k])) s[k] = [];
-    return s;
-  };
-  const oldStateAtCurrentVersion = filled({ schemaVersion: 3, stories: [], chapters: [], goals: [], steps: [], journey: [] });
-  t.ok("a state already at the current version still gains the new list", Array.isArray(oldStateAtCurrentVersion.events));
-
+  /* DEFAULT_STATE is the runtime shape and grows. REQUIRED_LISTS is
+     what makes a state a Story and must not. */
   t.ok(
     "REQUIRED_LISTS stays at the five that define an export",
-    JSON.stringify(load(["REQUIRED_LISTS"]).REQUIRED_LISTS) ===
+    JSON.stringify(REQUIRED_LISTS) ===
       JSON.stringify(["stories", "chapters", "goals", "steps", "journey"])
   );
+  t.ok("it is a no-op on a complete state", same(withDefaultLists(clone(once)), once));
   t.ok(
-    "so a file without a later list still validates",
+    "a file without a later list still validates",
     validateImport({ stories: [], chapters: [], goals: [], steps: [], journey: [] }) === null
   );
 
   /* migrate() must backfill even when there is no version work to do,
      or a state already at the current version never gains the list. */
   backups = [];
-  const current2 = await migrate({ schemaVersion: 3, stories: [] });
-  t.ok("migrate backfills an up-to-date state", Array.isArray(current2.journey));
-  t.ok("and still writes no backup for it", backups.length === 0);
+  const upToDate = await migrate({ schemaVersion: 3, stories: [], chapters: [], goals: [], steps: [], journey: [] });
+  t.ok("migrating an up-to-date state writes no backup", backups.length === 0);
+  t.ok("and leaves its lists alone", upToDate.stories.length === 0);
+
+  /* The backfill must never invent a REQUIRED list.
+
+     A file carrying pre-v3 key names but stamped at the current version
+     (hand-edited, half-converted, or written by a later bug) does not
+     enter the migration loop, because its version already looks current.
+     If the backfill supplied the missing `stories` and `journey`, the
+     result would read as a valid, empty Story and be written straight
+     over real data on restore, with the confirmation still promising
+     the counts it read from the old keys. */
+  t.section("a state that failed to convert must not look like an empty one");
+  const stampedWrong = {
+    schemaVersion: 3,
+    quests: [{ id: "q1", name: "Ten years of Writing" }],
+    subs: [], goals: [], tasks: [],
+    activities: [{ id: "a1", questId: "q1", note: "years of entries", date: "2026-01-01" }]
+  };
+  const notConverted = await migrate(clone(stampedWrong));
+  t.ok("stories is left missing, not invented", notConverted.stories === undefined);
+  t.ok("journey is left missing, not invented", notConverted.journey === undefined);
+  t.ok("so the shape check rejects it", isCurrentShape(notConverted) === false);
+  t.ok("the original data is still there to recover", notConverted.quests[0].name === "Ten years of Writing");
 
   /* --- activation ------------------------------------------------------ */
   t.section("v3 is live");

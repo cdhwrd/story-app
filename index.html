@@ -433,6 +433,11 @@ main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.
 <script>
 /* ===== SECTION: persistence ===== */
 const SCHEMA_VERSION = 3;
+/* The lists that make a state a Story, and a file a Story export. This
+   does NOT grow when a new list is added: requiring it here would
+   reject every export written before that list existed, and inventing
+   it on load would hide a state that failed to convert. */
+const REQUIRED_LISTS=["stories","chapters","goals","steps","journey"];
 const DEFAULT_STATE = {
   schemaVersion: SCHEMA_VERSION,
   mainStoryId:null,
@@ -557,10 +562,16 @@ const MIGRATIONS={
    before it existed. Backfilling from DEFAULT_STATE means introducing
    one is a single line there, with no migration and no risk to older
    exports. Non-destructive, so it runs on every load, including states
-   already at the current version. */
+   already at the current version.
+
+   REQUIRED_LISTS is deliberately excluded. Inventing an empty `stories`
+   would turn "this state did not convert" into "this person has no
+   Stories", which reads as valid and would be written straight over
+   real data on restore. A missing required list must stay missing so
+   isCurrentShape() can catch it. */
 function withDefaultLists(s){
   for(const [k,v] of Object.entries(DEFAULT_STATE)){
-    if(Array.isArray(v)&&!Array.isArray(s[k]))s[k]=[];
+    if(Array.isArray(v)&&!Array.isArray(s[k])&&!REQUIRED_LISTS.includes(k))s[k]=[];
   }
   return s;
 }
@@ -1377,11 +1388,6 @@ function openAddStory(){
   };
 }
 /* ===== SECTION: backup ===== */
-/* What makes a file a Story export. This list does NOT grow when a new
-   list is added to the state: requiring it here would reject every
-   export written before that list existed. New lists are backfilled by
-   withDefaultLists() instead. */
-const REQUIRED_LISTS=["stories","chapters","goals","steps","journey"];
 /* Exports made before v3 carry the old key names. They are still the
    user's data and must still restore, so the check runs before the
    rename happens rather than assuming it already has. */
