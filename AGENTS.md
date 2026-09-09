@@ -62,16 +62,11 @@ Open only what the task needs.
 
 | Task | Read |
 |---|---|
-| Deleting, cascades, orphans | [Deleting things](README.md#deleting-things) |
-| Steps, practices, marks | [Steps and Practices](README.md#steps-and-practices) |
-| Home screen, step lists | [Home views](README.md#home-views) |
-| Colour, type, emphasis | [Visual direction](README.md#visual-direction) |
-| Schema, fields, ids | [Data model](README.md#data-model) |
-| Migrations | [Migrations](README.md#migrations) |
-| Tests, harness | [Tests](README.md#tests) |
-| Why one file | [Why one file](README.md#why-one-file) |
-| What not to rebuild | [Deliberately removed](README.md#deliberately-removed) |
-| What to work on | [Current priorities](README.md#current-priorities) |
+| Schema, fields, ids, migrations, deleting | [Data model](docs/data-model.md) |
+| Steps, practices, marks, home screen, colour, type | [Design](docs/design.md) |
+| Repo layout, why one file, tests and harness | [Architecture](docs/architecture.md) |
+| Backup, Drive, `.ics`, Google Calendar shape | [Integrations](docs/integrations.md) |
+| What to work on, what not to rebuild | [Roadmap](docs/roadmap.md) |
 
 ## Pushing
 

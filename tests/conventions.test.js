@@ -220,25 +220,38 @@ module.exports = function (t) {
   t.ok("CLAUDE.md imports AGENTS.md rather than duplicating it", claude.includes("@AGENTS.md"));
   t.ok("CLAUDE.md stays thin", claude.trim().split("\n").length <= 10);
 
-  /* The router rots silently if the README is reorganised. Every
-     README anchor AGENTS.md links to must resolve to a real heading. */
-  const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
-  const slugs = new Set(
-    (readme.match(/^#{2,4}\s+.+$/gm) || []).map((h) =>
-      h.replace(/^#+\s+/, "")
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-    )
-  );
-  const links = [...agents.matchAll(/README\.md#([\w-]+)/g)].map((m) => m[1]);
-  const broken = links.filter((l) => !slugs.has(l));
-  t.ok("AGENTS.md routes to README sections", links.length > 0);
+  /* The router rots silently if the docs are reorganised. Every link in
+     AGENTS.md and in the docs themselves must point at a file that
+     exists and, where it names an anchor, a heading that exists. This is
+     the only thing standing between a five-document split and a set of
+     dead ends. */
+  const slugOf = (h) =>
+    h.replace(/^#+\s+/, "").toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
+  const headingsOf = (file) =>
+    new Set((fs.readFileSync(path.join(root, file), "utf8").match(/^#{1,4}\s+.+$/gm) || []).map(slugOf));
+
+  const docFiles = ["README.md", "AGENTS.md", ...fs.readdirSync(path.join(root, "docs")).map((f) => "docs/" + f)];
+  const headings = Object.fromEntries(docFiles.map((f) => [f, headingsOf(f)]));
+
+  const broken = [];
+  let checked = 0;
+  for (const file of docFiles) {
+    const text = fs.readFileSync(path.join(root, file), "utf8");
+    const dir = file.includes("/") ? file.slice(0, file.lastIndexOf("/")) : "";
+    for (const m of text.matchAll(/\]\(([^)\s]+?)(?:#([\w-]+))?\)/g)) {
+      const [, target, anchor] = m;
+      if (/^https?:/.test(target)) continue;
+      checked++;
+      const resolved = target
+        ? path.posix.normalize(path.posix.join(dir, target))
+        : file;
+      if (!headings[resolved]) { broken.push(`${file} -> ${target}`); continue; }
+      if (anchor && !headings[resolved].has(anchor)) broken.push(`${file} -> ${target}#${anchor}`);
+    }
+  }
+  t.ok("the docs link to each other", checked > 10);
   t.ok(
-    broken.length === 0
-      ? `all ${links.length} README links resolve`
-      : `broken README links in AGENTS.md: ${broken.join(", ")}`,
+    broken.length === 0 ? `all ${checked} document links resolve` : `broken links: ${broken.join(", ")}`,
     broken.length === 0
   );
 };
