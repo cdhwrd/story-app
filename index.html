@@ -287,7 +287,8 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(25,21,17,.52);display:none;align-items:center;justify-content:center;padding:17px;z-index:60}
 .modal-backdrop.open{display:flex}
-.modal{width:min(620px,100%);background:var(--paper2);border:1px solid var(--rule);box-shadow:0 28px 90px rgba(0,0,0,.27);padding:23px}
+.modal{width:min(620px,100%);background:var(--paper2);border:1px solid var(--rule);box-shadow:0 28px 90px rgba(0,0,0,.27);padding:23px;max-height:calc(100vh - 34px);max-height:calc(100dvh - 34px);display:flex;flex-direction:column}
+#modalBody{overflow-y:auto;min-height:0}
 .modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
 .modal h2{font-family:var(--serif);font-size:30px;letter-spacing:-.04em;margin:0}
 .close{border:1px solid var(--rule);background:#f1eadf;width:33px;height:33px;border-radius:50%;font-size:18px}
@@ -920,7 +921,7 @@ function renderHome(){
       ${picked.length?`<section class="event-list">${picked.map(o=>eventRow(o,today)).join("")}</section>`
         :emptyState("Nothing that day.","A clear day is not an empty one.",{page:true})}
       <div class="timeline-add"><button class="btn" id="addEventBtn">＋ Add event</button><button class="btn text" id="exportIcsBtn">⇩ Calendar file</button></div>`;
-    document.getElementById("addEventBtn").onclick=()=>openAddEvent();
+    document.getElementById("addEventBtn").onclick=()=>openAddEvent(calPicked||today);
     document.getElementById("exportIcsBtn").onclick=exportCalendarIcs;
     bindMain();
     renderStorageStatus();
@@ -1615,9 +1616,9 @@ function openLog(defaultId){
 /* One modal for both, since an event has no add-only or edit-only
    field. Times are local wall clock plus an IANA zone, which is
    Google's {dateTime, timeZone} shape, never toISOString(). */
-function eventForm(e){
+function eventForm(e,defaultDate){
   const allDay=e?eventIsAllDay(e):true;
-  const start=e?eventStartDate(e):todayLocal();
+  const start=e?eventStartDate(e):(defaultDate||todayLocal());
   const last=e?eventLastDate(e):start;
   const startT=e?eventStartTime(e):"09:00";
   const endT=e&&e.end&&e.end.dateTime?e.end.dateTime.slice(11,16):"10:00";
@@ -1625,7 +1626,7 @@ function eventForm(e){
     selectField("eventAllDay","When",[["yes","All day"],["no","At a time"]],allDay?"yes":"no")+
     dateField("eventStart","Starts",start)+
     dateField("eventEnd","Ends",last)+
-    `<div class="field" id="eventTimes">${timeField("eventStartTime","From",startT)}${timeField("eventEndTime","To",endT)}</div>`+
+    `<div id="eventTimes">${timeField("eventStartTime","From",startT)}${timeField("eventEndTime","To",endT)}</div>`+
     textField("eventLocation","Location",e&&e.location?e.location:"","Optional")+
     textField("eventDescription","Notes",e&&e.description?e.description:"","Optional")+
     repeatField(e)+
@@ -1645,6 +1646,16 @@ function bindEventForm(){
   const sel=document.getElementById("eventAllDay"),times=document.getElementById("eventTimes");
   const sync=()=>{times.style.display=sel.value==="yes"?"none":""};
   sel.onchange=sync;sync();
+  /* Most events are one day, so the end follows the start unless it has
+     deliberately been set to something else. It is also pulled forward
+     when it would otherwise fall before the start, which is never
+     meant. readEventForm() clamps too, as the backstop. */
+  const start=document.getElementById("eventStart"),end=document.getElementById("eventEnd");
+  let previous=start.value;
+  start.onchange=()=>{
+    if(end.value===previous||end.value<start.value)end.value=start.value;
+    previous=start.value;
+  };
 }
 function readEventForm(){
   const summary=val("eventSummary");
@@ -1662,10 +1673,9 @@ function readEventForm(){
   return {summary,start,end,location:val("eventLocation"),description:val("eventDescription"),
     recurrence:repeat?["RRULE:"+repeat]:[],storyId:val("eventStory")||null};
 }
-function openAddEvent(defaultStoryId){
-  showModal("Add Event",eventForm(null)+modalFooter("saveEvent","Add event"));
+function openAddEvent(defaultDate){
+  showModal("Add Event",eventForm(null,defaultDate)+modalFooter("saveEvent","Add event"));
   bindEventForm();
-  if(defaultStoryId)document.getElementById("eventStory").value=defaultStoryId;
   document.getElementById("saveEvent").onclick=()=>{
     const data=readEventForm(); if(!data)return;
     state.events.push({id:newId("e"),status:"confirmed",created:new Date().toISOString(),...data});

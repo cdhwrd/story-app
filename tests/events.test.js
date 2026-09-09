@@ -137,6 +137,11 @@ module.exports = function (t) {
      exclusive end, or every multi-day event is saved a day short. */
   t.section("writing an event back out");
   const { readEventForm } = load(["readEventForm", "val", "shiftDate", "localDate", "todayLocal"]);
+  const loadForm = () => load([
+    "eventForm", "repeatField", "field", "textField", "dateField", "timeField",
+    "selectField", "esc", "eventIsAllDay", "eventStartDate", "eventStartTime",
+    "eventLastDate", "shiftDate", "localDate", "todayLocal", "activeStories", "REPEATS"
+  ]);
   const fields = {};
   global.document = { getElementById: (id) => ({ value: fields[id] === undefined ? "" : fields[id] }) };
   global.toast = () => {};
@@ -167,6 +172,16 @@ module.exports = function (t) {
   Object.assign(fields, { eventAllDay: "yes", eventStart: "2026-09-25", eventEnd: "2026-09-20" });
   const backwards = readEventForm();
   t.ok("an end before the start is pulled up to the start", backwards.end.date === "2026-09-26");
+
+  /* Tapping the 13th in the month view and then Add event should mean
+     the 13th, not today. */
+  t.section("the form opens on the day you meant");
+  const { eventForm } = loadForm();
+  const onPicked = eventForm(null, "2026-09-13");
+  t.ok("start is the day tapped", onPicked.includes('id="eventStart" type="date" value="2026-09-13"'));
+  t.ok("end matches it, rather than needing choosing twice", onPicked.includes('id="eventEnd" type="date" value="2026-09-13"'));
+  const onToday = eventForm(null);
+  t.ok("with no day given it falls back to today", onToday.includes(`value="${todayLocal()}"`));
 
   Object.assign(fields, { eventSummary: "Rent", eventRepeat: "FREQ=MONTHLY" });
   t.ok("a repeat is stored Google's way", JSON.stringify(readEventForm().recurrence) === '["RRULE:FREQ=MONTHLY"]');

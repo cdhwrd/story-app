@@ -131,7 +131,7 @@ Export is one-way and a copy. No OAuth, no sync.
 
 **Recurrence is expanded at read time and never stored**, the same way mark counts are derived. A birthday is one record, so editing it moves every occurrence. An *occurrence* is `{date, last, rec}`: the record plus the days it actually lands on. Expansion runs through UTC and comes back through `utcDateOf()`, because a repeating event is a wall-clock idea (a birthday is the 16th everywhere) and local time would drift it across a DST boundary. Views expand at most a year either way; a rule can run forever, a view cannot.
 
-The modal offers Never, daily, weekly, monthly and yearly. A rule it cannot express, from an import or a future version, comes back as **Custom** and is written out untouched rather than downgraded to the nearest option.
+Adding an event from the month view opens on the day you tapped, and the end date follows the start unless it has deliberately been set to something else. The modal offers Never, daily, weekly, monthly and yearly. A rule it cannot express, from an import or a future version, comes back as **Custom** and is written out untouched rather than downgraded to the nearest option.
 
 **The state uses the UI's words, and only those.** A conventions test fails the build if `quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId` or `taskId` appear anywhere except the two places that must name them: `MIGRATIONS[3]`, and `PRE_V3_LISTS`, which is what lets an older export still restore.
 
@@ -326,6 +326,7 @@ The look is editorial and printed: cream paper, warm black ink, serif for anythi
 - **Uppercase is for small labels only** (eyebrows, kickers, field labels). Headings and Story names are sentence case. Uppercasing something 35px tall is shouting.
 - **State presence, never absence.** No empty slots waiting to be filled, no cadence targets, no shortfall.
 - **No decoration that needs `overflow:hidden` to stay in its card.** Offset shadows and rotated shapes escape their parent on mobile.
+- **A dialog must always be dismissable and submittable.** The modal caps its height and scrolls its body; a fixed, centred flex container silently puts the footer off-screen once the content is tall enough, and a form you cannot submit looks like a broken app rather than a layout bug.
 
 ### Home views
 

@@ -105,6 +105,13 @@ module.exports = function (t) {
     undefined_.length === 0
   );
 
+  /* A tall modal used to overflow a fixed, centred flex container with
+     nothing scrollable, which put the save button off-screen and made
+     the longest form in the app impossible to submit. Invisible in any
+     test that only looks at markup, so it is asserted on the rules. */
+  t.ok("the modal caps its height", /\.modal\{[^}]*max-height/.test(css.replace(/\s+/g, "")));
+  t.ok("and its body scrolls", /#modalBody\{[^}]*overflow-y:auto/.test(css.replace(/\s+/g, "")));
+
   /* Inline styles belong in the stylesheet. The survivors are modal
      bodies and one display toggle. */
   const inline = (html.match(/style="/g) || []).length;
