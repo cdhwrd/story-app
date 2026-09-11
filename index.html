@@ -254,6 +254,8 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .story-head-copy{flex:1;min-width:0}
 .journey{margin-top:15px}
 .journey-track{position:relative;padding-left:24px}
+.journey-group+.journey-group{margin-top:20px}
+.journey-group .chapter-name{margin-bottom:12px}
 .journey-track:before{content:"";position:absolute;left:6px;top:4px;bottom:5px;width:1px;background:#cfc4b4}
 .journal-entry{position:relative;padding:0 0 19px}
 .journal-check{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
@@ -654,6 +656,34 @@ function currentChapter(id){
 function storyLine(id){
   const c=currentChapter(id);if(c)return c.title;
   const gs=goals(id);return gs.length===1?gs[0].title:"";
+}
+/* The chapter a Journey entry belongs to, reached through its step and
+   that step's goal. Nothing is stored on the entry, so moving a step to
+   another goal moves its history with it. A hand-logged entry, or one
+   whose step or goal is unfiled or gone, has no chapter. */
+function entryChapterId(rec){
+  const step=rec.stepId?state.steps.find(t=>t.id===rec.stepId):null;
+  const goal=step&&step.goalId?state.goals.find(g=>g.id===step.goalId):null;
+  return goal&&goal.chapterId?goal.chapterId:null;
+}
+/* The Story page Journey, split by chapter: the current chapter first,
+   then other active chapters, then dormant ones, each ordered by its
+   newest entry. Everything under no chapter, past events included,
+   comes last. Only chapters holding entries appear, and entries keep
+   the order they were given in. */
+function journeyByChapter(storyId,items){
+  const cur=currentChapter(storyId);
+  const groups=allChaptersIn(storyId).map(c=>({chapter:c,items:[]}));
+  const loose={chapter:null,items:[]};
+  for(const it of items){
+    const cid=it.type==="journey"?entryChapterId(it.rec):null;
+    (groups.find(g=>g.chapter.id===cid)||loose).items.push(it);
+  }
+  const rank=c=>c.id===cur?.id?0:c.status==="dormant"?2:1;
+  const newest=g=>g.items.reduce((d,it)=>it.date>d?it.date:d,"");
+  const out=groups.filter(g=>g.items.length)
+    .sort((a,b)=>rank(a.chapter)-rank(b.chapter)||newest(b).localeCompare(newest(a)));
+  return loose.items.length?out.concat(loose):out;
 }
 function allChaptersIn(id){return state.chapters.filter(x=>x.storyId===id)}
 function stepsIn(id){return state.steps.filter(x=>x.storyId===id)}
@@ -1231,6 +1261,7 @@ function openStory(id){
   const story=storyById(id); if(!story)return renderHome();
   const gs=allGoals(id), ss=allChaptersIn(id), ps=practices(id), qs=onceSteps(id), history=journeyBehind(id,todayLocal());
   const currentId=chaptersIn(id).length>1?currentChapter(id)?.id:null;
+  const journeyGroups=journeyByChapter(id,history);
   document.getElementById("main").innerHTML=`
     <div class="story-head">
       <button class="btn text back" id="backHome">←</button>
@@ -1294,9 +1325,11 @@ function openStory(id){
 
     <section class="panel journey">
       <div class="section-title"><h2>Journey</h2><div class="count-label">${plural(history.length,"step")} taken</div></div>
-      <div class="journey-track">
-        ${history.length?history.map(behindEntry).join(""):emptyState("Your Journey begins with a step.","Complete a step or log something you did.")}
-      </div>
+      ${history.length?(journeyGroups.some(g=>g.chapter)?journeyGroups.map(g=>`<div class="journey-group">
+        <div class="chapter-name${g.chapter?"":" chapter-name-loose"}">${g.chapter?esc(g.chapter.title):"Not in a chapter"}</div>
+        <div class="journey-track">${g.items.map(behindEntry).join("")}</div>
+      </div>`).join(""):`<div class="journey-track">${history.map(behindEntry).join("")}</div>`)
+        :`<div class="journey-track">${emptyState("Your Journey begins with a step.","Complete a step or log something you did.")}</div>`}
     </section>`;
 
   document.getElementById("backHome").onclick=renderHome;

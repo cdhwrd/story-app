@@ -27,6 +27,7 @@ Design principles that constrain all of the above are in [Visual direction](desi
 - Practices appear in the home page "Next steps" teaser alongside one-off steps, undifferentiated
 - Completed steps aren't listed anywhere outside the Journey, though they can be reopened from there
 - What a Chapter should *be* is still open. In practice they are mostly year-shaped ("2026: becoming a musician") but not always, so no year field has been formalised
+- Hand-logged Journey entries carry no Chapter, so on a Story page grouped by Chapter they always sit under "Not in a chapter". An optional Chapter picker in the Log modal is the next move if that block grows
 - The Story page is macro; there is no focused "what do I do now" view
 - `completedAt` is date-only while `createdAt` is a full ISO timestamp
 - An `.ics` event with no `DTEND` is written without one, which the spec allows but some importers read as zero length
