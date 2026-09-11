@@ -1365,10 +1365,13 @@ function completeStep(id){
   state.journey.push({id:newId("a"),storyId:t.storyId,stepId:t.id,note:t.title,date:t.completedAt});
   save(); showStamp(); currentStory?openStory(currentStory):renderHome();
 }
+/* A new step starts under no goal. It used to be filed under the
+   Story's first goal, which picked one goal arbitrarily when a Story
+   had several. Filing is a choice, made in the step's edit modal. */
 function addQuickStep(id){
   const input=document.getElementById("quickStepInput");
   const title=input.value.trim();if(!title){toast("Add a step first");return}
-  state.steps.push({id:newId("t"),storyId:id,goalId:goals(id)[0]?.id||null,title,status:"open",createdAt:new Date().toISOString()});
+  state.steps.push({id:newId("t"),storyId:id,goalId:null,title,status:"open",createdAt:new Date().toISOString()});
   save();toast("Step added");openStory(id);
 }
 /* ---- Edit and delete -------------------------------------------------
