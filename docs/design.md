@@ -45,8 +45,9 @@ Things the app does not have, and should not grow. Each was considered and rejec
 
 ### Design decisions
 
-- Main Story card is **olive green**, and the whole card opens the Story. It leads with the goal; the Story name is a small label above it.
-- Other Stories are **compact rows**: icon, name, one-line goal, and when the last Journey entry happened. On mobile they join into one list so every Story fits on a screen.
+- Main Story card is **olive green**, and the whole card opens the Story. It leads with the current Chapter; the Story name is a small label above it.
+- Other Stories are **compact rows**: icon, name, current Chapter, and when the last Journey entry happened.
+- **The line under a Story's name is its current Chapter**, marked in the Chapter's edit modal and tagged "current" in Direction. With no current Chapter it falls back to the Goal only when there is exactly one, and otherwise shows nothing, because promoting one of several Goals misrepresents the Story. On mobile they join into one list so every Story fits on a screen.
 - "Plan the next step", not "Take a Step". The panel is a queue of upcoming steps, so the label shouldn't imply they're already done. The separate **＋ Log** action is for recording what actually happened.
 - Story detail is three sections: **Direction** (goals nested under their chapter, with a trailing "Not in a chapter" block), **Next step**, and **Journey**. Keeping goals inside their chapter makes the relationship visible rather than implied.
 - Row actions are quiet **✎ icon buttons**, not "Edit" text, which would compete with the content.

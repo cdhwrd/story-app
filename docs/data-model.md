@@ -18,7 +18,7 @@ Every item also carries `storyId`, so a Story's contents can be fetched without 
 
 | Entity | State key | Fields |
 |---|---|---|
-| Story | `stories` | `id`, `name`, `icon`, `attention`, `status` |
+| Story | `stories` | `id`, `name`, `icon`, `attention`, `status`, `currentChapterId` |
 | Chapter | `chapters` | `id`, `storyId`, `title`, `status` |
 | Goal | `goals` | `id`, `storyId`, `chapterId`, `title`, `detail`, `status` |
 | Step | `steps` | `id`, `storyId`, `goalId`, `title`, `status`, `completedAt`, `mode`, `anchor`, `lastMarkedAt` |
@@ -36,6 +36,14 @@ Two consequences worth knowing. All-day `end` is **exclusive**, the day after th
 **The state uses the UI's words, and only those.** A conventions test fails the build if `quests`, `subs`, `tasks`, `activities`, `questId`, `subQuestId` or `taskId` appear anywhere except the two places that must name them: `MIGRATIONS[3]`, and `PRE_V3_LISTS`, which is what lets an older export still restore.
 
 Selectors scoped to a Story carry an `In` suffix, `chaptersIn(id)`, `stepsIn(id)`, `journeyIn(id)`, to keep them clear of the local variable names the renderers use (`story` is one). `goals(id)` and `allGoals(id)` are the exception; that word needs no qualifying.
+
+### The current chapter
+
+A Story can have several active Chapters, so `story.currentChapterId` records which one it is in now. It is optional and needs no migration: absent or `null` means none has been marked. `currentChapter()` resolves it at read time:
+
+- A mark on a Chapter that is dormant, deleted, or in another Story is ignored, not cleaned up, the same way a Goal pointing at a deleted Chapter reads as unfiled.
+- A Story with exactly one active Chapter has that one as current without a mark.
+- Adding a Chapter, or waking a dormant one, first writes down the Chapter the Story is showing (`pinCurrentChapter()`), so gaining a second active Chapter never takes the line off its home card.
 
 ### Steps and Practices
 
