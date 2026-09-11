@@ -9,7 +9,7 @@ The look is editorial and printed: cream paper, warm black ink, serif for anythi
 - **Emphasis is the app's only editorial voice, and it belongs to the record, not the controls.** One loud thing per screen, and it should be a fact about what the person has actually done.
 - **Uppercase is for small labels only** (eyebrows, kickers, field labels). Headings and Story names are sentence case. Uppercasing something 35px tall is shouting.
 - **State presence, never absence.** No empty slots waiting to be filled, no cadence targets, no shortfall.
-- **No decoration that needs `overflow:hidden` to stay in its card.** Offset shadows and rotated shapes escape their parent on mobile.
+- **No decoration that needs `overflow:hidden` to stay in its card.** Offset shadows and rotated shapes escape their parent on mobile. The hard offset shadows and the card corner bracket have been removed; a card is a 1px rule and a 3px accent band, nothing more.
 - **A dialog must always be dismissable and submittable.** The modal caps its height and scrolls its body; a fixed, centred flex container silently puts the footer off-screen once the content is tall enough, and a form you cannot submit looks like a broken app rather than a layout bug.
 
 ### Home views
@@ -45,7 +45,7 @@ Things the app does not have, and should not grow. Each was considered and rejec
 
 ### Design decisions
 
-- Main Story card is **blue**.
+- Main Story card is **olive green**.
 - "Plan the next step", not "Take a Step". The panel is a queue of upcoming steps, so the label shouldn't imply they're already done. The separate **＋ Log** action is for recording what actually happened.
 - Story detail is three sections: **Direction** (goals nested under their chapter, with a trailing "Not in a chapter" block), **Next step**, and **Journey**. Keeping goals inside their chapter makes the relationship visible rather than implied.
 - Row actions are quiet **✎ icon buttons**, not "Edit" text, which would compete with the content.

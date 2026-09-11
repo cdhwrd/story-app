@@ -14,7 +14,7 @@ const path = require("path");
 const { scriptSource, styleSource, APP } = require("./harness");
 
 /* Ceilings. Lower these when you clean up. Do not raise them. */
-const MAX_DUPLICATE_SELECTORS = 43;
+const MAX_DUPLICATE_SELECTORS = 37;
 const MAX_UNUSED_CLASSES = 0;
 const MAX_INLINE_STYLES = 13;
 const MAX_AGENTS_LINES = 150;

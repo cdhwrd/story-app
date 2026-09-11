@@ -126,29 +126,23 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 }
 .serif-title{font-family:var(--serif);letter-spacing:-.045em}
 .home-hero{
-  margin-bottom:28px;
+  margin-bottom:20px;
 }
-.home-hero h1{font-size:clamp(28px,4.4vw,40px);line-height:1.02;margin:6px 0 0;max-width:760px}
-.hero-note{font-family:var(--serif);font-size:15px;color:var(--muted);margin:9px 0 0;max-width:670px;line-height:1.4}
+.home-hero h1{font-size:clamp(24px,4.4vw,34px);line-height:1.02;margin:6px 0 0;max-width:760px}
+.hero-note{font-family:var(--serif);font-size:14px;color:var(--muted);margin:9px 0 0;max-width:670px;line-height:1.4}
 .section-rule{display:flex;align-items:center;gap:12px;margin:34px 0 15px}
 .section-rule .btn{flex:0 0 auto;order:1;font-size:12px;padding:7px 11px}
 .section-rule span{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:900;white-space:nowrap}
-.section-rule:after{content:"";height:2px;background:var(--ink);flex:1}
+.section-rule:after{content:"";height:1px;background:var(--ink);flex:1}
 .main-story{
   display:grid;grid-template-columns:1.08fr .92fr;gap:0;
-  background:var(--olive);color:#fff;border:2px solid var(--ink);box-shadow:8px 9px 0 rgba(30,27,23,.18);
+  background:var(--olive);color:#fff;border:1px solid var(--ink);
   min-height:275px;
   position:relative;overflow:hidden;
 }
 .main-story-left{padding:26px 26px 24px;background:linear-gradient(135deg,#f7f1e5,#eee5d5);border-right:1px solid var(--rule)}
 .main-story-right{padding:26px;display:flex;flex-direction:column;justify-content:space-between}
-.story-badge{
-  display:inline-flex;align-items:center;gap:7px;border:1px solid #cfc3ad;
-  padding:5px 8px;border-radius:2px;font-size:10px;text-transform:uppercase;letter-spacing:.13em;font-weight:900;
-  background:#f8f1e3;
-}
-.story-badge .star{color:var(--gold)}
-.main-story h2{font-family:var(--serif);font-size:52px;line-height:.98;margin:16px 0 8px;letter-spacing:-.05em}
+.main-story h2{font-family:var(--serif);font-size:40px;line-height:.98;margin:16px 0 8px;letter-spacing:-.05em}
 .story-subline{color:var(--muted);font-size:13px;max-width:500px}
 .goal-feature{margin-top:22px;border-top:1px solid rgba(120,107,88,.25);padding-top:14px}
 .goal-label{font-size:9px;text-transform:uppercase;letter-spacing:.16em;font-weight:900;color:var(--muted)}
@@ -178,7 +172,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 }
 .story-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .story-card .card-icon{font-size:25px}
-.story-card h3{font-family:var(--serif);font-size:29px;line-height:1;margin:13px 0 5px;letter-spacing:-.04em}
+.story-card h3{font-family:var(--serif);font-size:24px;line-height:1;margin:13px 0 5px;letter-spacing:-.04em}
 .story-card .card-goal-label{font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);font-weight:900}
 .story-card .card-goal{font-family:var(--serif);font-size:18px;line-height:1.12;margin-top:4px}
 .card-footer{display:flex;justify-content:space-between;align-items:end;gap:10px;margin-top:auto;padding-top:18px}
@@ -231,9 +225,9 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .cal-today .cal-day{background:var(--ink);color:var(--paper);border-radius:50%}
 .cal-sel{border-color:var(--ink);border-width:2px}
 .cal-day{font-size:12px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
-.cal-chip{font-size:10px;line-height:1.25;background:var(--rule);padding:1px 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-chip{font-size:10px;line-height:1.25;background:var(--rule);padding:1px 3px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}
 .cal-more{font-size:10px;color:var(--muted)}
-.view-tab{font-family:var(--sans);font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;padding:8px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink);cursor:pointer}
+.view-tab{font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 10px;border:1px solid var(--ink);border-radius:2px;background:var(--paper2);color:var(--ink);cursor:pointer}
 .view-tab.on{background:var(--ink);color:var(--paper2)}
 .flat-steps{margin-bottom:22px}
 .practice-tag{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:var(--blue);margin-left:7px}
@@ -282,7 +276,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .journal-check input{width:14px;height:14px;accent-color:var(--olive);cursor:pointer;margin:0}
 .journal-entry:before{content:"";position:absolute;left:-21px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--terracotta);box-shadow:0 0 0 3px var(--paper2)}
 .journal-date{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:900}
-.journal-note{font-family:var(--serif);font-size:20px;line-height:1.12;margin:4px 0}
+.journal-note{font-family:var(--serif);font-size:18px;line-height:1.12;margin:4px 0}
 .journal-meta{font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:10px}
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(25,21,17,.52);display:none;align-items:center;justify-content:center;padding:17px;z-index:60}
@@ -300,11 +294,11 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,18px);opacity:0;pointer-events:none;background:var(--ink);color:#fff;padding:11px 15px;font-size:12px;font-weight:800;z-index:90;transition:.2s;border-radius:9px;box-shadow:var(--shadow)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .step-stamp{
-  position:fixed;left:50%;top:94px;transform:translate(-50%,-8px) rotate(-2deg) scale(.98);opacity:0;pointer-events:none;
+  position:fixed;left:50%;top:94px;transform:translate(-50%,-8px) scale(.98);opacity:0;pointer-events:none;
   border:2px solid var(--terracotta);color:var(--terracotta);background:rgba(250,244,234,.94);
   padding:11px 15px 9px;text-align:center;z-index:85;transition:.2s;box-shadow:0 10px 26px rgba(60,42,27,.13)
 }
-.step-stamp.show{opacity:1;transform:translate(-50%,0) rotate(-2deg) scale(1)}
+.step-stamp.show{opacity:1;transform:translate(-50%,0) scale(1)}
 .step-stamp strong{display:block;font-family:var(--serif);font-size:20px;line-height:1}
 
 @media(max-width:900px){
@@ -321,7 +315,7 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
   .story-head{align-items:center}
 }
 @media(max-width:560px){
-  .brand{display:none}
+  .topbar{display:none}
   .main-story h2{font-size:45px}
   .main-story-left,.main-story-right{padding:21px}
   .panel{padding:18px}
@@ -332,73 +326,58 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 /* ===== SECTION: styles-poster ===== */
 /* Editorial explorer base: paper texture, offset shadows, poster accents */
 body:after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;background-image:radial-gradient(rgba(55,41,26,.25) .6px,transparent .7px);background-size:19px 21px;z-index:-1}
-.brand-mark{border-radius:4px;transform:rotate(-3deg)}
-.main-story:before{content:"01";position:absolute;right:22px;top:8px;font:700 76px/1 Georgia,"Times New Roman",serif;color:rgba(255,255,255,.22);pointer-events:none}
+.brand-mark{border-radius:4px}
+.main-story:before{content:"01";position:absolute;right:22px;top:8px;font:700 58px/1 Georgia,"Times New Roman",serif;color:rgba(255,255,255,.14);pointer-events:none}
 .story-card:hover{transform:translateY(-4px)}
-.story-card:after{content:"";position:absolute;right:14px;bottom:13px;width:18px;height:18px;border-right:1px solid #c9bba7;border-bottom:1px solid #c9bba7}
-.step-trigger{box-shadow:2px 2px 0 rgba(70,52,34,.07)}
+.step-trigger{box-shadow:none}
 .journey{position:relative;overflow:hidden}
 .count-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .storage-status{font-size:10px;color:var(--muted);line-height:1.4}
-.data-footer{border-top:2px solid var(--ink);background:rgba(246,241,232,.6);padding:14px 28px 22px}
+.data-footer{border-top:1px solid var(--ink);background:rgba(246,241,232,.6);padding:14px 28px 22px}
 .data-footer-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .data-actions{display:flex;gap:8px;flex-wrap:wrap}
 .data-actions .btn{font-size:12px;padding:8px 11px}
 @media(max-width:900px){main{padding-left:13px;padding-right:13px;min-width:0}.story-cols{grid-template-columns:minmax(0,1fr)}.section-title{flex-wrap:wrap;min-width:0}.section-title>*{min-width:0;max-width:100%}.section-title .btn{max-width:100%;white-space:nowrap}.story-head{min-width:0}.story-head>*{min-width:0}.story-head-actions{min-width:0}.add-step-row{min-width:0;max-width:100%;flex-wrap:wrap}/* basis must stay auto: the row becomes a column below 560px, where a fixed basis is read as HEIGHT and balloons the input */.add-step-row input{min-width:0;flex:1 1 auto}.story-card{transform:none}}
 
-/* Bold editorial / travel-poster styling. Image-free, blank-template safe. */
-body{
-  background:
-    radial-gradient(circle at 12% 16%,rgba(255,255,255,.55),transparent 28%),
-    radial-gradient(circle at 88% 30%,rgba(242,207,53,.13),transparent 20%),
-    var(--paper);
-}
-.topbar{border-bottom:2px solid var(--ink)}
-.btn{border:1.5px solid var(--ink);border-radius:3px}
+/* Editorial, printed, quiet. Image-free, blank-template safe. */
+.btn{border:1px solid var(--ink);border-radius:3px}
 .btn.primary{background:var(--terracotta);border-color:var(--ink)}
 .btn.primary:hover{background:#96482f}
 .section-rule:before{content:"";width:11px;height:11px;background:var(--blue);transform:rotate(45deg);flex:0 0 auto}
 .home-hero{position:relative}
-.main-story-left{background:transparent;border-right:2px solid rgba(30,27,23,.35);position:relative;z-index:1}
+.main-story-left{background:transparent;border-right:1px solid rgba(30,27,23,.35);position:relative;z-index:1}
 .main-story-right{position:relative;z-index:1}
-.main-story:before{font-size:96px;color:rgba(255,255,255,.22)}
-.main-story h2{color:#fff;font-size:56px}
+.main-story h2{color:#fff}
 .main-story .story-subline,.main-story .goal-label,.main-story .goal-target,.main-story .mini-label{color:#fff3e7}
-.story-badge{background:var(--gold-soft);border:2px solid var(--ink);color:var(--ink)}
 .goal-feature,.step-teaser{border-color:rgba(255,255,255,.5)}
 .step-line{border-color:rgba(255,255,255,.35)}
-.open-story{color:#fff;border-bottom:2px solid var(--gold);padding-bottom:4px}
-.story-card{border:2px solid var(--ink);border-top-width:8px;box-shadow:6px 7px 0 rgba(30,27,23,.14);position:relative;overflow:hidden}
+.open-story{color:#fff;border-bottom:1px solid var(--gold);padding-bottom:4px}
+.story-card{border:1px solid var(--ink);border-top-width:3px;position:relative;overflow:hidden}
 .story-card:nth-child(1){border-top-color:var(--blue);background:var(--blue-soft)}
 .story-card:nth-child(2){border-top-color:var(--olive);background:var(--olive-soft)}
 .story-card:nth-child(3){border-top-color:var(--gold);background:var(--gold-soft)}
 .story-card:nth-child(4){border-top-color:var(--terracotta);background:var(--terracotta-soft)}
 .story-card:nth-child(5){border-top-color:var(--olive);background:var(--olive-soft)}
-.story-card h3{font-size:32px}
-.story-head{border-bottom:2px solid var(--ink);padding-bottom:13px}
-.story-head-icon{border:2px solid var(--ink);box-shadow:3px 3px 0 rgba(30,27,23,.13)}
-.panel{border:2px solid var(--ink);border-top-width:4px;box-shadow:4px 5px 0 rgba(30,27,23,.09)}
+.story-head{border-bottom:1px solid var(--ink);padding-bottom:13px}
+.story-head-icon{border:1px solid var(--ink)}
+.panel{border:1px solid var(--ink);border-top-width:3px}
 
 .step{border-color:#c9bda9}
 .add-step-row{border-top:1px solid #c9bda9;padding-top:12px}
-.add-step-row input{border:2px solid var(--ink);border-radius:2px}
+.add-step-row input{border:1px solid var(--ink);border-radius:2px}
 .journey{background:#f7f1e5;border-top-color:var(--blue)}
-.journey-track:before{width:2px;background:var(--ink)}
+.journey-track:before{width:1px;background:var(--rule)}
 .journal-entry:before{width:12px;height:12px;background:var(--terracotta);border-radius:0;transform:rotate(45deg);left:-23px}
 .journal-date{color:var(--blue)}
-.journal-note{font-size:23px}
 /* Prevent mobile action menus and headers from escaping the viewport. */
 main,.home-hero,.main-story,.story-head,.story-head-actions,.story-cols,.panel,.section-title,.add-step-row{min-width:0;max-width:100%}
 @media(max-width:900px){
-  .main-story-left{border-right:0;border-bottom:2px solid rgba(30,27,23,.35)}
+  .main-story-left{border-right:0;border-bottom:1px solid rgba(30,27,23,.35)}
   .section-title{flex-wrap:wrap;align-items:flex-start}
   .section-title .btn{max-width:100%;white-space:normal}
 }
 @media(max-width:560px){
-  .main-story h2{font-size:46px}
-  /* Offset shadows are decorative; at narrow widths they add horizontal bulk. */
-  .main-story{box-shadow:4px 5px 0 rgba(30,27,23,.18)}
-  .story-card,.panel{box-shadow:3px 4px 0 rgba(30,27,23,.12)}
+  .main-story h2{font-size:33px}
   .data-footer{padding:13px 13px 20px}
   .data-footer-inner{gap:9px}
   .data-actions{width:100%}
@@ -916,7 +895,7 @@ function renderHome(){
         }).join("")}
       </div>
       <div class="section-rule"><span>${esc(humanDate(calPicked||today))}</span></div>
-      ${picked.length?`<section class="event-list">${picked.map(o=>eventRow(o,today)).join("")}</section>`
+      ${picked.length?`<section class="event-list">${picked.map(o=>eventRow(o,today,false)).join("")}</section>`
         :emptyState("Nothing that day.","A clear day is not an empty one.",{page:true})}
       <div class="timeline-add"><button class="btn" id="addEventBtn">＋ Add event</button><button class="btn text" id="exportIcsBtn">⇩ Calendar file</button></div>`;
     document.getElementById("addEventBtn").onclick=()=>openAddEvent(calPicked||today);
@@ -980,7 +959,6 @@ function renderHome(){
     <div class="section-rule"><span>★ Main Story</span></div>
     <section class="main-story">
       <div class="main-story-left">
-        <div class="story-badge"><span class="star">★</span> Main Story</div>
         <h2>${esc(main.name)}</h2>
         ${mainGoal?`<div class="goal-feature">
           <div class="goal-label">Goal</div>
@@ -1098,15 +1076,17 @@ function aheadDate(d,today){
   if(diff<7)return "In "+diff+" days";
   return new Date(d+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
 }
-function eventWhen(o,today){
+function eventWhen(o,today,relative){
   const span=o.last!==o.date?" to "+new Date(o.last+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
-  return aheadDate(o.date,today)+span+(eventIsAllDay(o.rec)?"":" at "+eventStartTime(o.rec));
+  const time=eventIsAllDay(o.rec)?"":" at "+eventStartTime(o.rec);
+  return ((relative===false?"":aheadDate(o.date,today))+span+time).trim();
 }
-function eventRow(o,today){
+function eventRow(o,today,relative){
   const e=o.rec,story=e.storyId?storyById(e.storyId):null;
   const repeats=eventRule(e)?"repeats":"";
+  const when=eventWhen(o,today,relative);
   return `<div class="event-row">
-    <div class="event-when">${esc(eventWhen(o,today))}</div>
+    ${when?`<div class="event-when">${esc(when)}</div>`:""}
     <div class="event-title">${esc(e.summary)}</div>
     <div class="event-meta">
       <span>${esc([e.location,story?`${story.icon} ${story.name}`:"",repeats].filter(Boolean).join(" · "))}</span>
@@ -1253,7 +1233,7 @@ async function applyDelete(kind,id){
 }
 function goalRow(g){
   const done=g.status==="complete";
-  const bits=[done?"complete":"",g.detail].filter(Boolean).map(esc).join(" · ");
+  const bits=[done?"Complete":"",g.detail].filter(Boolean).map(esc).join(" · ");
   return `<div class="goal-row-item${done?" goal-done":""}">
     <div class="goal-row-copy">
       <div class="goal-row-title">${esc(g.title)}</div>
@@ -1272,7 +1252,7 @@ function openStory(id){
       <div class="story-head-icon">${esc(story.icon)}</div>
       <div class="story-head-copy">
         <h1>${esc(story.name)}</h1>
-        <div class="story-head-meta">${state.mainStoryId===id?"★ Main Story · ":""}${plural(history.length,"step")} taken</div>
+        ${state.mainStoryId===id?`<div class="story-head-meta">★ Main Story</div>`:""}
       </div>
       <div class="story-head-actions">
         <button class="btn text head-action" id="logStoryBtn">＋ Log</button>
@@ -1483,7 +1463,7 @@ function openEditGoal(id){
     textField("goalTitleEdit","Goal",g.title)+
     textField("goalDetailEdit","Detail",g.detail||"")+
     selectField("goalChapterEdit","Chapter",[["","No chapter"],...chaptersIn(g.storyId).map(c=>[c.id,c.title])],g.chapterId||"")+
-    selectField("goalStatus","Status",[["open","open"],["complete","complete"]],g.status)+
+    selectField("goalStatus","Status",[["open","Open"],["complete","Complete"]],g.status)+
     modalFooter("saveGoalEdit","Save","deleteGoal"));
   document.getElementById("saveGoalEdit").onclick=()=>{
     const t=val("goalTitleEdit");
