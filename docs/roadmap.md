@@ -14,7 +14,7 @@ Events are done: the record, the timeline, the month grid, recurrence and `.ics`
 
 Codebase, whenever there is appetite:
 
-- **CSS consolidation.** 37 selectors have more than one base-layer definition, and the breakpoints repeat: three `@media(max-width:900px)` blocks and two at 560px. `tests/conventions.test.js` holds the live count as a ceiling that may only fall.
+- **CSS consolidation.** 34 selectors have more than one base-layer definition, and the breakpoints repeat: three `@media(max-width:900px)` blocks and two at 560px. `tests/conventions.test.js` holds the live count as a ceiling that may only fall.
 - **File split.** Optional and last. Requires changing the service worker to network-first for all same-origin assets in the same commit. See [Why one file](architecture.md#why-one-file).
 
 Design principles that constrain all of the above are in [Visual direction](design.md#visual-direction) and [Deliberately removed](design.md#deliberately-removed).
