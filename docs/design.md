@@ -30,7 +30,7 @@ Timeline is one spine: events **ahead**, then everything **behind**, which is th
 - **An event is behind you only once its last day has passed**, so a trip still reads as ahead on its final morning.
 - **Nothing counts down and nothing is overdue.** An event is a fact on a date, not a due date. `humanDate()` reads a date relative to today in either direction: Today, Yesterday, 3 days ago, Tomorrow, In 3 days, then a plain date. It never counts down to anything.
 
-Calendar is the month a timeline cannot show: shape, spacing, how full a week is. Same records, laid out rather than listed. Weeks start on Monday, a month takes five rows or six as it needs (an empty trailing row reads as missing content, not as spare space), and tapping a day lists it underneath. A multi-day event appears on every day it covers, not only its first.
+Calendar is the month a timeline cannot show: shape, spacing, how full a week is. Same records, laid out rather than listed. Weeks start on Monday, a month takes five rows or six as it needs (an empty trailing row reads as missing content, not as spare space), and the list underneath is the rest of the month: from today in the current month, the whole month in any other. The Timeline already lists everything ahead, so this is deliberately one month's worth. Tapping a day narrows the list to that day, tapping it again (or "Rest of the month") widens it back, and ＋ Add event starts on the tapped day. A multi-day event appears on every day it covers, not only its first.
 
 ### Deliberately removed
 

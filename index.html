@@ -207,6 +207,8 @@ main{max-width:1180px;width:100%;margin:0 auto;padding:34px 36px 70px}
 .cal-cell{display:flex;flex-direction:column;align-items:stretch;gap:2px;min-height:62px;padding:4px;border:1px solid var(--rule);background:var(--paper);font:inherit;text-align:left;cursor:pointer;overflow:hidden}
 .cal-out{opacity:.35}
 .cal-today .cal-day{background:var(--ink);color:var(--paper);border-radius:50%}
+.cal-back{margin:-4px 0 12px}
+.cal-back .btn{font-size:14px;padding-left:0}
 .cal-sel{border-color:var(--ink);border-width:2px}
 .cal-day{font-size:12px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
 .cal-chip{font-size:10px;line-height:1.25;background:var(--rule);padding:1px 3px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}
@@ -793,6 +795,15 @@ function monthCells(year,month){
   }
   return cells;
 }
+/* What the list under the month grid covers: the rest of the month
+   from today when it is the current month, the whole month otherwise.
+   The Timeline already lists everything ahead; this is one month's. */
+function monthListRange(year,month,today){
+  const mm=String(month).padStart(2,"0");
+  const from=`${year}-${mm}-01`;
+  const to=`${year}-${mm}-${String(new Date(Date.UTC(year,month,0)).getUTCDate()).padStart(2,"0")}`;
+  return {from:today>from&&today<=to?today:from,to};
+}
 function monthLabel(year,month){
   return new Date(Date.UTC(year,month-1,1)).toLocaleDateString(undefined,{month:"long",year:"numeric",timeZone:"UTC"});
 }
@@ -897,7 +908,9 @@ function renderHome(){
     const byDay={};
     for(const o of occurrencesBetween(cells[0].date,cells[cells.length-1].date))
       for(let d=o.date;d<=o.last;d=shiftDate(d,1))(byDay[d]=byDay[d]||[]).push(o);
-    const picked=calPicked&&byDay[calPicked]?byDay[calPicked]:occurrencesOn(calPicked||today);
+    const range=monthListRange(year,month,today);
+    const listed=calPicked?(byDay[calPicked]||occurrencesOn(calPicked)):occurrencesBetween(range.from,range.to);
+    const thisMonth=range.from===today;
     document.getElementById("main").innerHTML=`
       ${homeHero("The shape of the month.")}
       ${toggle}
@@ -913,7 +926,7 @@ function renderHome(){
           const cls=["cal-cell"];
           if(!c.inMonth)cls.push("cal-out");
           if(c.date===today)cls.push("cal-today");
-          if(c.date===(calPicked||today))cls.push("cal-sel");
+          if(c.date===calPicked)cls.push("cal-sel");
           return `<button class="${cls.join(" ")}" data-day="${c.date}">
             <span class="cal-day">${Number(c.date.slice(8))}</span>
             ${list.slice(0,2).map(o=>`<span class="cal-chip">${esc(o.rec.summary)}</span>`).join("")}
@@ -921,11 +934,14 @@ function renderHome(){
           </button>`;
         }).join("")}
       </div>
-      <div class="section-rule"><span>${esc(humanDate(calPicked||today))}</span></div>
-      ${picked.length?`<section class="event-list">${picked.map(o=>eventRow(o,today,false)).join("")}</section>`
-        :emptyState("Nothing that day.","A clear day is not an empty one.",{page:true})}
+      <div class="section-rule"><span>${esc(calPicked?humanDate(calPicked):thisMonth?"Coming up":monthLabel(year,month))}</span></div>
+      ${calPicked?`<div class="cal-back"><button class="btn text" id="calMonthBtn">← ${esc(thisMonth?"Rest of the month":"All of "+monthLabel(year,month))}</button></div>`:""}
+      ${listed.length?`<section class="event-list">${listed.map(o=>eventRow(o,today,calPicked?false:undefined)).join("")}</section>`
+        :calPicked?emptyState("Nothing that day.","A clear day is not an empty one.",{page:true})
+        :emptyState(thisMonth?"Nothing else this month.":`Nothing in ${monthLabel(year,month)}.`,"A clear stretch is not an empty one.",{page:true})}
       <div class="timeline-add"><button class="btn" id="addEventBtn">＋ Add event</button><button class="btn text" id="exportIcsBtn">⇩ Calendar file</button></div>`;
-    document.getElementById("addEventBtn").onclick=()=>openAddEvent(calPicked||today);
+    document.getElementById("addEventBtn").onclick=()=>openAddEvent(calPicked||range.from);
+    if(calPicked)document.getElementById("calMonthBtn").onclick=()=>{calPicked=null;renderHome()};
     document.getElementById("exportIcsBtn").onclick=exportCalendarIcs;
     bindMain();
     renderStorageStatus();
@@ -1047,7 +1063,7 @@ function bindMain(){
   on("[data-edit-event]",el=>openEditEvent(el.dataset.editEvent));
   on("[data-ics-event]",el=>exportEventIcs(el.dataset.icsEvent));
   on("[data-cal]",el=>{calCursor=shiftMonth(calCursor.year,calCursor.month,Number(el.dataset.cal));calPicked=null;renderHome()});
-  on("[data-day]",el=>{calPicked=el.dataset.day;renderHome()});
+  on("[data-day]",el=>{calPicked=calPicked===el.dataset.day?null:el.dataset.day;renderHome()});
   on("[data-complete]",el=>completeStep(el.dataset.complete));
   on("[data-mark]",el=>markPractice(el.dataset.mark));
   on("[data-edit-chapter]",el=>openEditChapter(el.dataset.editChapter));
@@ -1088,12 +1104,17 @@ function aheadDate(d,today){
   if(diff<=0)return "Today";
   if(diff===1)return "Tomorrow";
   if(diff<7)return "In "+diff+" days";
-  return new Date(d+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+  return shortDate(d);
 }
+function shortDate(d){return new Date(d+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}
+/* aheadDate() reads any day up to today as "Today", which is right for a
+   trip still under way. An occurrence that has fully passed, which the
+   calendar can list when you page back a month, reads as its date. */
 function eventWhen(o,today,relative){
-  const span=o.last!==o.date?" to "+new Date(o.last+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+  const span=o.last!==o.date?" to "+shortDate(o.last):"";
   const time=eventIsAllDay(o.rec)?"":" at "+eventStartTime(o.rec);
-  return ((relative===false?"":aheadDate(o.date,today))+span+time).trim();
+  const day=relative===false?"":o.last<today?shortDate(o.date):aheadDate(o.date,today);
+  return (day+span+time).trim();
 }
 function eventRow(o,today,relative){
   const e=o.rec,story=e.storyId?storyById(e.storyId):null;
